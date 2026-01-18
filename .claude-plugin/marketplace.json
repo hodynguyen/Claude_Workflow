@@ -1,0 +1,13 @@
+{
+  "name": "hody",
+  "owner": {
+    "name": "Hody",
+    "email": "0xgosu@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "hody-workflow",
+      "source": "./plugins/hody-workflow"
+    }
+  ]
+}
