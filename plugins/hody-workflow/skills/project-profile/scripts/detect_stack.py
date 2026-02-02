@@ -289,11 +289,12 @@ def build_profile(cwd):
 
     # Node.js detection
     node_result = detect_node(cwd)
-    if node_result and node_result[0] is not None:
-        # Returns tuple of 6
-        fe, be_node, testing, e2e, linter, formatter = node_result
-        if be_node:
-            be = be_node
+    if node_result and isinstance(node_result, tuple) and len(node_result) == 6:
+        node_fe, node_be, testing, e2e, linter, formatter = node_result
+        if node_fe:
+            fe = node_fe
+        if node_be:
+            be = node_be
 
     # Go detection (can override/add backend)
     go_be = detect_go(cwd)
