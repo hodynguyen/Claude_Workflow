@@ -223,9 +223,9 @@ claude-workflow/
 │       │   ├── hooks.json            # SessionStart hook config
 │       │   └── inject_project_context.py
 │       └── commands/
-│           ├── init.md               # /hody:init
-│           ├── start-feature.md      # /hody:start-feature
-│           └── status.md             # /hody:status
+│           ├── init/SKILL.md             # /hody-workflow:init
+│           ├── start-feature/SKILL.md    # /hody-workflow:start-feature
+│           └── status/SKILL.md           # /hody-workflow:status
 ├── test/
 │   └── test_detect_stack.py          # 31 unit tests
 ├── CLAUDE.md                         # Instructions for Claude Code
