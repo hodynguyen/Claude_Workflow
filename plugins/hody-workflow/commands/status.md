@@ -1,5 +1,4 @@
 ---
-name: status
 description: Show current project status including detected tech stack, knowledge base overview, and suggested next steps.
 ---
 

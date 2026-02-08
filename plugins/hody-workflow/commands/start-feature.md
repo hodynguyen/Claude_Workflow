@@ -1,5 +1,4 @@
 ---
-name: start-feature
 description: Start a guided feature development workflow. Analyzes the feature type and recommends an agent sequence through THINK, BUILD, VERIFY, and SHIP phases.
 ---
 

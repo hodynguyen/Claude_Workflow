@@ -1,5 +1,4 @@
 ---
-name: init
 description: Initialize hody workflow for the current project. Detects tech stack and creates knowledge base.
 ---
 
