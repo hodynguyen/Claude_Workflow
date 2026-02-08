@@ -155,6 +155,111 @@ class TestPythonProject(unittest.TestCase):
             self.assertEqual(profile["backend"]["orm"], "django-orm")
 
 
+class TestRustProject(unittest.TestCase):
+    def test_actix_web(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "Cargo.toml"), "w") as f:
+                f.write('[dependencies]\nactix-web = "4"\nsqlx = { version = "0.7" }\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["project"]["type"], "backend")
+            self.assertEqual(profile["backend"]["language"], "rust")
+            self.assertEqual(profile["backend"]["framework"], "actix-web")
+            self.assertEqual(profile["backend"]["orm"], "sqlx")
+            self.assertEqual(profile["backend"]["testing"], "cargo-test")
+
+    def test_axum(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "Cargo.toml"), "w") as f:
+                f.write('[dependencies]\naxum = "0.7"\nstatic diesel = "2"\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["backend"]["framework"], "axum")
+            self.assertEqual(profile["backend"]["orm"], "diesel")
+
+    def test_rocket(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "Cargo.toml"), "w") as f:
+                f.write('[dependencies]\nrocket = "0.5"\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["backend"]["framework"], "rocket")
+
+
+class TestJavaProject(unittest.TestCase):
+    def test_spring_boot_maven(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "pom.xml"), "w") as f:
+                f.write('<project>\n<parent>\n<artifactId>spring-boot-starter-parent</artifactId>\n</parent>\n</project>\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["project"]["type"], "backend")
+            self.assertEqual(profile["backend"]["language"], "java")
+            self.assertEqual(profile["backend"]["framework"], "spring-boot")
+            self.assertEqual(profile["backend"]["build"], "maven")
+            self.assertEqual(profile["backend"]["testing"], "junit")
+
+    def test_spring_boot_gradle(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "build.gradle"), "w") as f:
+                f.write("plugins {\n  id 'org.springframework.boot' version '3.2.0'\n}\n")
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["backend"]["framework"], "spring-boot")
+            self.assertEqual(profile["backend"]["build"], "gradle")
+
+    def test_kotlin_spring(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "build.gradle.kts"), "w") as f:
+                f.write('plugins {\n  kotlin("jvm")\n  id("org.springframework.boot")\n}\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["backend"]["language"], "kotlin")
+            self.assertEqual(profile["backend"]["framework"], "spring-boot")
+
+    def test_quarkus(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "pom.xml"), "w") as f:
+                f.write('<project>\n<dependency>\n<groupId>io.quarkus</groupId>\n</dependency>\n</project>\n')
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["backend"]["framework"], "quarkus")
+
+
+class TestNodeAdditional(unittest.TestCase):
+    def _make_package_json(self, tmpdir, deps=None, dev_deps=None):
+        pkg = {"name": "test-app", "dependencies": deps or {}, "devDependencies": dev_deps or {}}
+        with open(os.path.join(tmpdir, "package.json"), "w") as f:
+            json.dump(pkg, f)
+
+    def test_angular(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._make_package_json(tmpdir, deps={"@angular/core": "^17.0.0"})
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["frontend"]["framework"], "angular")
+
+    def test_svelte(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._make_package_json(tmpdir, deps={"svelte": "^4.0.0"})
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["frontend"]["framework"], "svelte")
+
+    def test_sveltekit_overrides_svelte(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._make_package_json(
+                tmpdir,
+                deps={"svelte": "^4.0.0"},
+                dev_deps={"@sveltejs/kit": "^2.0.0"},
+            )
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["frontend"]["framework"], "sveltekit")
+
+    def test_nest_backend(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._make_package_json(
+                tmpdir,
+                deps={"@nestjs/core": "^10.0.0"},
+                dev_deps={"typescript": "^5.0.0"},
+            )
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["project"]["type"], "backend")
+            self.assertEqual(profile["backend"]["framework"], "nest")
+            self.assertEqual(profile["backend"]["language"], "typescript")
+
+
 class TestDevOps(unittest.TestCase):
     def test_docker(self):
         with tempfile.TemporaryDirectory() as tmpdir:

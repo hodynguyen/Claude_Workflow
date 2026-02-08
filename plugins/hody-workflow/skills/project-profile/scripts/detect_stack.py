@@ -3,11 +3,13 @@
 Auto-detect project tech stack from config files.
 Outputs .hody/profile.yaml with detected stack info.
 
-Supported stacks (MVP):
-  - Node.js (React, Vue, Next, Nuxt, Express, Fastify)
-  - Go (Gin, Echo)
-  - Python (Django, FastAPI)
-  - Docker, GitHub Actions, GitLab CI
+Supported stacks:
+  - Node.js (React, Vue, Angular, Svelte, SvelteKit, Next, Nuxt, Express, Fastify, Nest)
+  - Go (Gin, Echo, Fiber)
+  - Python (Django, FastAPI, Flask)
+  - Rust (Actix-web, Rocket, Axum)
+  - Java (Spring Boot, Maven, Gradle)
+  - Docker, GitHub Actions, GitLab CI, Jenkins
   - Terraform, Pulumi
 """
 import json
@@ -59,11 +61,13 @@ def detect_node(cwd):
     elif "@angular/core" in deps:
         fe["framework"] = "angular"
 
-    # SSR frameworks (override)
+    # SSR/meta frameworks (override)
     if "next" in deps:
         fe["framework"] = "next"
     elif "nuxt" in deps:
         fe["framework"] = "nuxt"
+    elif "@sveltejs/kit" in deps or "@sveltejs/kit" in dev_deps:
+        fe["framework"] = "sveltekit"
 
     # State management
     if "zustand" in deps:
@@ -208,6 +212,67 @@ def detect_python(cwd):
     return be if be.get("framework") else None, testing
 
 
+def detect_rust(cwd):
+    """Detect Rust project from Cargo.toml."""
+    content = read_lines(os.path.join(cwd, "Cargo.toml"))
+    if not content:
+        return None, None
+
+    be = {"language": "rust"}
+    testing = "cargo-test"
+
+    if "actix-web" in content:
+        be["framework"] = "actix-web"
+    elif "rocket" in content:
+        be["framework"] = "rocket"
+    elif "axum" in content:
+        be["framework"] = "axum"
+
+    if "diesel" in content:
+        be["orm"] = "diesel"
+    elif "sqlx" in content:
+        be["orm"] = "sqlx"
+    elif "sea-orm" in content:
+        be["orm"] = "sea-orm"
+
+    return be if be.get("framework") else None, testing
+
+
+def detect_java(cwd):
+    """Detect Java project from pom.xml or build.gradle."""
+    content = ""
+    build_tool = None
+
+    pom_content = read_lines(os.path.join(cwd, "pom.xml"))
+    if pom_content:
+        content = pom_content
+        build_tool = "maven"
+
+    gradle_content = read_lines(os.path.join(cwd, "build.gradle"))
+    if not gradle_content:
+        gradle_content = read_lines(os.path.join(cwd, "build.gradle.kts"))
+    if gradle_content:
+        content += gradle_content
+        build_tool = "gradle"
+
+    if not content:
+        return None, None
+
+    be = {"language": "java", "build": build_tool}
+
+    if "spring-boot" in content or "org.springframework.boot" in content:
+        be["framework"] = "spring-boot"
+    elif "quarkus" in content or "io.quarkus" in content:
+        be["framework"] = "quarkus"
+    elif "micronaut" in content or "io.micronaut" in content:
+        be["framework"] = "micronaut"
+
+    if "kotlin" in content:
+        be["language"] = "kotlin"
+
+    return be if be.get("framework") else None, "junit"
+
+
 def detect_devops(cwd):
     """Detect CI/CD, containerization, and infrastructure."""
     devops = {}
@@ -309,6 +374,20 @@ def build_profile(cwd):
         be = py_be
     if py_testing and not testing:
         testing = py_testing
+
+    # Rust detection
+    rust_be, rust_testing = detect_rust(cwd)
+    if rust_be:
+        be = rust_be
+    if rust_testing and not testing:
+        testing = rust_testing
+
+    # Java detection
+    java_be, java_testing = detect_java(cwd)
+    if java_be:
+        be = java_be
+    if java_testing and not testing:
+        testing = java_testing
 
     # Determine project type
     if fe and be:
