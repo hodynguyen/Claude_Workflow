@@ -10,7 +10,9 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 
 - **Auto stack detection** — scans `package.json`, `go.mod`, `requirements.txt`, `Dockerfile`, CI configs, etc.
 - **Knowledge base** — 6 persistent markdown files (architecture, decisions, api-contracts, business-rules, tech-debt, runbook) that accumulate project context across sessions
-- **Specialized agents** — architect, code-reviewer, unit-tester (3 more groups coming in Phase 2)
+- **9 specialized agents** across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
+- **Guided workflows** — `/hody:start-feature` maps your task to the right agent sequence
+- **Output styles** — standardized templates for review reports, test reports, and design docs
 - **SessionStart hook** — automatically injects your project's tech stack into every Claude Code session
 
 ---
@@ -70,7 +72,22 @@ my-app/
 
 > **Tip:** Commit `.hody/` to git — it's team knowledge, not temp files.
 
-### Call agents
+### Start a feature workflow
+
+```
+/hody:start-feature
+```
+
+This classifies your task (new feature, bug fix, refactor, etc.) and recommends an agent sequence:
+
+```
+THINK:  researcher → architect
+BUILD:  frontend + backend (parallel)
+VERIFY: unit-tester → integration-tester → code-reviewer → spec-verifier
+SHIP:   devops
+```
+
+### Call agents directly
 
 ```
 # Code review
@@ -81,7 +98,27 @@ my-app/
 
 # Unit tests
 "Use agent unit-tester to write tests for src/utils/validator.ts"
+
+# Research
+"Use agent researcher to compare state management libraries"
+
+# Check project status
+/hody:status
 ```
+
+### Available agents
+
+| Group | Agent | Role |
+|-------|-------|------|
+| THINK | researcher | Research docs, best practices, library comparison |
+| THINK | architect | System design, API contracts, ADRs |
+| BUILD | frontend | UI components, state management, client-side logic |
+| BUILD | backend | API endpoints, business logic, database operations |
+| VERIFY | code-reviewer | Code quality, security, performance review |
+| VERIFY | spec-verifier | Verify code matches specs and business rules |
+| VERIFY | unit-tester | Unit tests for functions and components |
+| VERIFY | integration-tester | API tests, E2E tests, business flow tests |
+| SHIP | devops | CI/CD, Docker, infrastructure, deployment |
 
 ### How it works
 
@@ -97,14 +134,14 @@ Session starts
 
 | Stack | Detection source |
 |-------|-----------------|
-| Node.js + React/Vue/Next/Nuxt | `package.json` dependencies |
+| Node.js + React/Vue/Angular/Svelte/SvelteKit/Next/Nuxt | `package.json` dependencies |
 | Go + Gin/Echo/Fiber | `go.mod` |
 | Python + Django/FastAPI/Flask | `requirements.txt`, `pyproject.toml` |
+| Rust + Actix-web/Rocket/Axum | `Cargo.toml` |
+| Java/Kotlin + Spring Boot/Quarkus/Micronaut | `pom.xml`, `build.gradle` |
 | Docker | `Dockerfile`, `docker-compose.yml` |
 | CI/CD | `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile` |
 | Infrastructure | `*.tf` (Terraform), `pulumi/` |
-
-More stacks (Rust, Java, C#, Ruby, PHP) coming in Phase 3.
 
 ### Updating the plugin
 
@@ -135,11 +172,16 @@ When a new version is released:
 | 9 | 3 MVP agents (architect, code-reviewer, unit-tester) | Done |
 | 10 | Unit tests (20 tests) | Done |
 
-### Phase 2: Full Agent Suite — Not started
+### Phase 2: Full Agent Suite — Complete
 
-- 6 remaining agents (researcher, frontend, backend, spec-verifier, integration-tester, devops)
-- `/hody:start-feature` and `/hody:status` commands
-- Output styles (review-report, test-report, design-doc)
+| # | Task | Status |
+|---|------|--------|
+| 1 | 6 remaining agents (researcher, frontend, backend, spec-verifier, integration-tester, devops) | Done |
+| 2 | Output styles (review-report, test-report, design-doc) | Done |
+| 3 | `/hody:start-feature` command | Done |
+| 4 | `/hody:status` command | Done |
+| 5 | Extended stack detection (Rust, Java/Kotlin, Angular, Svelte) | Done |
+| 6 | Unit tests expanded (31 tests) | Done |
 
 ### Phase 3-4
 
@@ -157,10 +199,20 @@ claude-workflow/
 │   └── hody-workflow/
 │       ├── .claude-plugin/
 │       │   └── plugin.json           # Plugin metadata
-│       ├── agents/
-│       │   ├── architect.md          # System design agent
-│       │   ├── code-reviewer.md      # Code review agent
-│       │   └── unit-tester.md        # Unit testing agent
+│       ├── agents/                   # 9 specialized agents
+│       │   ├── architect.md          # THINK — system design
+│       │   ├── researcher.md         # THINK — research & comparison
+│       │   ├── frontend.md           # BUILD — UI implementation
+│       │   ├── backend.md            # BUILD — API & business logic
+│       │   ├── code-reviewer.md      # VERIFY — code quality
+│       │   ├── spec-verifier.md      # VERIFY — spec compliance
+│       │   ├── unit-tester.md        # VERIFY — unit tests
+│       │   ├── integration-tester.md # VERIFY — API & E2E tests
+│       │   └── devops.md             # SHIP — CI/CD & infra
+│       ├── output-styles/            # Standardized output templates
+│       │   ├── review-report.md
+│       │   ├── test-report.md
+│       │   └── design-doc.md
 │       ├── skills/
 │       │   ├── project-profile/
 │       │   │   ├── SKILL.md
@@ -171,9 +223,11 @@ claude-workflow/
 │       │   ├── hooks.json            # SessionStart hook config
 │       │   └── inject_project_context.py
 │       └── commands/
-│           └── init.md               # /hody:init command
+│           ├── init.md               # /hody:init
+│           ├── start-feature.md      # /hody:start-feature
+│           └── status.md             # /hody:status
 ├── test/
-│   └── test_detect_stack.py          # 20 unit tests
+│   └── test_detect_stack.py          # 31 unit tests
 ├── CLAUDE.md                         # Instructions for Claude Code
 └── HODY_WORKFLOW_PROPOSAL.md         # Full design spec (Vietnamese)
 ```
