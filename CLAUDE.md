@@ -35,7 +35,7 @@ plugins/hody-workflow/
 ├── hooks/
 │   ├── hooks.json                 # SessionStart hook registration
 │   └── inject_project_context.py  # Reads profile, injects into system message
-└── commands/                      # /hody:init, /hody:start-feature, /hody:status
+└── commands/                      # /hody-workflow:init, /hody-workflow:start-feature, /hody-workflow:status
 ```
 
 ## Development Stack
@@ -65,8 +65,8 @@ python3 -m pytest test/test_detect_stack.py
 
 ## Development Roadmap
 
-- **Phase 1 (MVP)**: Repo setup, detect_stack for top 5 stacks, 3 core agents (architect, code-reviewer, unit-tester), knowledge base templates, /hody:init command
-- **Phase 2**: Remaining 6 agents, /hody:start-feature and /hody:status commands, output styles
+- **Phase 1 (MVP)**: Repo setup, detect_stack for top 5 stacks, 3 core agents (architect, code-reviewer, unit-tester), knowledge base templates, /hody-workflow:init command
+- **Phase 2**: Remaining 6 agents, /hody-workflow:start-feature and /hody-workflow:status commands, output styles
 - **Phase 3**: Broader stack detection, monorepo support, knowledge base search
 - **Phase 4**: MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
 

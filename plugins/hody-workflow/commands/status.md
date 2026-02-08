@@ -2,13 +2,13 @@
 description: Show current project status including detected tech stack, knowledge base overview, and suggested next steps.
 ---
 
-# /hody:status
+# /hody-workflow:status
 
 Show the current Hody Workflow status for this project.
 
 ## Steps
 
-1. **Check initialization**: Verify `.hody/profile.yaml` exists. If not, tell the user to run `/hody:init` first.
+1. **Check initialization**: Verify `.hody/profile.yaml` exists. If not, tell the user to run `/hody-workflow:init` first.
 
 2. **Read profile**: Read `.hody/profile.yaml` and display a summary:
 
@@ -42,7 +42,7 @@ Use ✅ for files with content and ⚠️ for files that are still just the temp
 
 - If knowledge base files are empty → suggest using the architect agent to fill them
 - If no tests exist → suggest using unit-tester or integration-tester
-- If profile exists and KB is populated → suggest `/hody:start-feature` to begin a new feature
+- If profile exists and KB is populated → suggest `/hody-workflow:start-feature` to begin a new feature
 - If recent code changes exist → suggest using code-reviewer
 
 ## Output
@@ -66,7 +66,7 @@ Knowledge Base:
 
 Suggested next steps:
   → Define business rules (use architect agent)
-  → Or start a new feature: /hody:start-feature
+  → Or start a new feature: /hody-workflow:start-feature
 ```
 
 ## Notes

@@ -9,7 +9,7 @@ Auto-detect project tech stack and generate `.hody/profile.yaml`.
 
 ## When to Use
 
-- User runs `/hody:init`
+- User runs `/hody-workflow:init`
 - User asks about the project's tech stack
 - An agent needs to know the current stack before performing work
 

@@ -2,13 +2,13 @@
 description: Start a guided feature development workflow. Analyzes the feature type and recommends an agent sequence through THINK, BUILD, VERIFY, and SHIP phases.
 ---
 
-# /hody:start-feature
+# /hody-workflow:start-feature
 
 Start a guided, multi-phase feature development workflow.
 
 ## Steps
 
-1. **Check initialization**: Verify `.hody/profile.yaml` exists. If not, run `/hody:init` first.
+1. **Check initialization**: Verify `.hody/profile.yaml` exists. If not, run `/hody-workflow:init` first.
 
 2. **Gather feature description**: Ask the user to describe the feature they want to build. Ask clarifying questions if the description is vague.
 

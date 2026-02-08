@@ -11,7 +11,7 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 - **Auto stack detection** — scans `package.json`, `go.mod`, `requirements.txt`, `Dockerfile`, CI configs, etc.
 - **Knowledge base** — 6 persistent markdown files (architecture, decisions, api-contracts, business-rules, tech-debt, runbook) that accumulate project context across sessions
 - **9 specialized agents** across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
-- **Guided workflows** — `/hody:start-feature` maps your task to the right agent sequence
+- **Guided workflows** — `/hody-workflow:start-feature` maps your task to the right agent sequence
 - **Output styles** — standardized templates for review reports, test reports, and design docs
 - **SessionStart hook** — automatically injects your project's tech stack into every Claude Code session
 
@@ -46,7 +46,7 @@ cd ~/projects/my-app
 claude
 
 # Inside Claude Code:
-/hody:init
+/hody-workflow:init
 ```
 
 This will:
@@ -75,7 +75,7 @@ my-app/
 ### Start a feature workflow
 
 ```
-/hody:start-feature
+/hody-workflow:start-feature
 ```
 
 This classifies your task (new feature, bug fix, refactor, etc.) and recommends an agent sequence:
@@ -103,7 +103,7 @@ SHIP:   devops
 "Use agent researcher to compare state management libraries"
 
 # Check project status
-/hody:status
+/hody-workflow:status
 ```
 
 ### Available agents
@@ -168,7 +168,7 @@ When a new version is released:
 | 5 | `detect_stack.py` — auto stack detection | Done |
 | 6 | Knowledge base templates (6 files) | Done |
 | 7 | `SKILL.md` for project-profile | Done |
-| 8 | `/hody:init` command | Done |
+| 8 | `/hody-workflow:init` command | Done |
 | 9 | 3 MVP agents (architect, code-reviewer, unit-tester) | Done |
 | 10 | Unit tests (20 tests) | Done |
 
@@ -178,8 +178,8 @@ When a new version is released:
 |---|------|--------|
 | 1 | 6 remaining agents (researcher, frontend, backend, spec-verifier, integration-tester, devops) | Done |
 | 2 | Output styles (review-report, test-report, design-doc) | Done |
-| 3 | `/hody:start-feature` command | Done |
-| 4 | `/hody:status` command | Done |
+| 3 | `/hody-workflow:start-feature` command | Done |
+| 4 | `/hody-workflow:status` command | Done |
 | 5 | Extended stack detection (Rust, Java/Kotlin, Angular, Svelte) | Done |
 | 6 | Unit tests expanded (31 tests) | Done |
 

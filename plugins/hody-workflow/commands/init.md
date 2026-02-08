@@ -2,7 +2,7 @@
 description: Initialize hody workflow for the current project. Detects tech stack and creates knowledge base.
 ---
 
-# /hody:init
+# /hody-workflow:init
 
 Initialize Hody Workflow for the current project.
 
