@@ -52,8 +52,9 @@ claude
 This will:
 1. Run `detect_stack.py` to scan your project files
 2. Generate `.hody/profile.yaml` with detected stack info
-3. Create `.hody/knowledge/` with 6 template files
-4. Display a summary of detected technologies
+3. Create `.hody/knowledge/` with 6 files
+4. Populate knowledge base with real project data (architecture, API routes, runbook commands, tech stack ADR)
+5. Display a summary of detected technologies and populated knowledge
 
 ### Generated structure
 
@@ -62,12 +63,12 @@ my-app/
 └── .hody/
     ├── profile.yaml              # Tech stack (auto-generated)
     └── knowledge/
-        ├── architecture.md       # System design
-        ├── decisions.md          # ADRs (Architecture Decision Records)
-        ├── api-contracts.md      # API specs between FE/BE
-        ├── business-rules.md     # Business logic
-        ├── tech-debt.md          # Known issues, TODOs
-        └── runbook.md            # Deploy, debug, operate
+        ├── architecture.md       # System overview, components, data flow (auto-populated)
+        ├── decisions.md          # ADR-001: initial tech stack (auto-populated)
+        ├── api-contracts.md      # Detected API endpoints (auto-populated)
+        ├── business-rules.md     # Business logic (template — fill manually)
+        ├── tech-debt.md          # Known issues (template — fill manually)
+        └── runbook.md            # Dev commands, deployment (auto-populated)
 ```
 
 > **Tip:** Commit `.hody/` to git — it's team knowledge, not temp files.

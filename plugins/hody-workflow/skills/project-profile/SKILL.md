@@ -32,9 +32,11 @@ python3 ${SKILL_ROOT}/scripts/detect_stack.py --cwd <project-root>
 
 | Category | Sources Scanned |
 |----------|----------------|
-| Node.js (React, Vue, Next, Express, Fastify, Nest) | `package.json` |
+| Node.js (React, Vue, Angular, Svelte, SvelteKit, Next, Nuxt, Express, Fastify, Nest) | `package.json` |
 | Go (Gin, Echo, Fiber) | `go.mod` |
 | Python (Django, FastAPI, Flask) | `requirements.txt`, `pyproject.toml`, `Pipfile`, `setup.py` |
+| Rust (Actix-web, Rocket, Axum) | `Cargo.toml` |
+| Java/Kotlin (Spring Boot, Quarkus, Micronaut) | `pom.xml`, `build.gradle`, `build.gradle.kts` |
 | Database | `docker-compose.yml`, `.env`, `.env.example` |
 | CI/CD | `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile` |
 | Infrastructure | `*.tf` (Terraform), `pulumi/` |

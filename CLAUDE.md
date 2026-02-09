@@ -4,19 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. The project is currently in the **design/proposal phase** with the full specification in `HODY_WORKFLOW_PROPOSAL.md`.
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Phase 1 (MVP) and Phase 2 (Full Agent Suite) are complete. The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
-- A shared knowledge base (`.hody/knowledge/`) that persists across sessions
+- A shared knowledge base (`.hody/knowledge/`) that is auto-populated on init and accumulates across sessions
 - 9 specialized agents across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
+- 3 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`
+- 3 output styles: review-report, test-report, design-doc
 
 ## Architecture
 
 ### Three-Layer Design
 
-1. **Project Profile** (foundation) — `detect_stack.py` scans config files (package.json, go.mod, requirements.txt, etc.) and outputs `.hody/profile.yaml` with detected language, framework, testing, CI/CD, and infra details
-2. **Knowledge Base** (accumulative) — Markdown files in `.hody/knowledge/` (architecture, decisions/ADRs, api-contracts, business-rules, tech-debt, runbook) that agents both read and write
+1. **Project Profile** (foundation) — `detect_stack.py` scans config files (package.json, go.mod, requirements.txt, Cargo.toml, pom.xml, etc.) and outputs `.hody/profile.yaml` with detected language, framework, testing, CI/CD, and infra details
+2. **Knowledge Base** (accumulative) — Markdown files in `.hody/knowledge/` (architecture, decisions/ADRs, api-contracts, business-rules, tech-debt, runbook). Auto-populated during init, then agents both read and write to accumulate context
 3. **Specialized Agents** — 9 agents with static Markdown prompts that adapt behavior by reading the profile at runtime
 
 ### Data Flow
@@ -24,11 +26,12 @@ The plugin provides:
 User request → [SessionStart hook] injects profile → Agent loads profile.yaml + knowledge base → Agent performs work → Agent writes new knowledge → Output
 ```
 
-### Plugin Structure (target)
+### Plugin Structure
 ```
 plugins/hody-workflow/
 ├── .claude-plugin/plugin.json     # Plugin metadata
 ├── agents/                        # 9 agent prompt files (.md)
+├── output-styles/                 # 3 output templates (review-report, test-report, design-doc)
 ├── skills/
 │   ├── project-profile/scripts/detect_stack.py
 │   └── knowledge-base/templates/  # 6 KB template files
@@ -48,10 +51,10 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Unit tests for detect_stack.py
-python3 -m pytest test/test_detect_stack.py
+# Unit tests for detect_stack.py (31 tests)
+python3 -m unittest test.test_detect_stack -v
 
-# Tests use mock project structures (temp directories simulating React, Go, Python projects)
+# Tests use mock project structures (temp directories simulating React, Go, Python, Rust, Java projects)
 # to verify profile.yaml output correctness
 ```
 
@@ -65,10 +68,10 @@ python3 -m pytest test/test_detect_stack.py
 
 ## Development Roadmap
 
-- **Phase 1 (MVP)**: Repo setup, detect_stack for top 5 stacks, 3 core agents (architect, code-reviewer, unit-tester), knowledge base templates, /hody-workflow:init command
-- **Phase 2**: Remaining 6 agents, /hody-workflow:start-feature and /hody-workflow:status commands, output styles
-- **Phase 3**: Broader stack detection, monorepo support, knowledge base search
-- **Phase 4**: MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
+- **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
+- **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
+- **Phase 3 (Intelligence)**: Not started — monorepo support, auto-update profile, knowledge base search
+- **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
 
 ## Language Note
 
