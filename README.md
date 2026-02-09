@@ -31,6 +31,14 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 /plugin install hody-workflow@hody
 ```
 
+You'll be prompted to choose a scope:
+
+| Scope | When to use |
+|-------|-------------|
+| **User** | Personal use — available across all your projects |
+| **Project** | Team use — committed to git, teammates get it automatically |
+| **Local** | Testing — only you, only this project, gitignored |
+
 ### 3. Restart Claude Code
 
 Plugins load at startup — restart is required after install.
