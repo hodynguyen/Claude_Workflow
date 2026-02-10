@@ -8,7 +8,10 @@ Supported stacks:
   - Go (Gin, Echo, Fiber)
   - Python (Django, FastAPI, Flask)
   - Rust (Actix-web, Rocket, Axum)
-  - Java (Spring Boot, Maven, Gradle)
+  - Java/Kotlin (Spring Boot, Quarkus, Micronaut)
+  - C#/.NET (ASP.NET Core, Blazor, Entity Framework)
+  - Ruby (Rails, Sinatra, Hanami)
+  - PHP (Laravel, Symfony, Magento)
   - Docker, GitHub Actions, GitLab CI, Jenkins
   - Terraform, Pulumi
 """
@@ -273,6 +276,115 @@ def detect_java(cwd):
     return be if be.get("framework") else None, "junit"
 
 
+def detect_csharp(cwd):
+    """Detect C#/.NET project from .csproj, .sln, or global.json."""
+    content = ""
+
+    # Check for .sln files
+    sln_files = [f for f in os.listdir(cwd) if f.endswith(".sln")] if os.path.isdir(cwd) else []
+    # Check for .csproj files
+    csproj_files = [f for f in os.listdir(cwd) if f.endswith(".csproj")] if os.path.isdir(cwd) else []
+
+    for f in csproj_files:
+        content += read_lines(os.path.join(cwd, f))
+
+    global_json = read_lines(os.path.join(cwd, "global.json"))
+    content += global_json
+
+    if not content and not sln_files and not csproj_files:
+        return None, None
+
+    be = {"language": "csharp"}
+    testing = None
+
+    if "microsoft.aspnetcore" in content or "asp.net" in content or "webapplication" in content:
+        be["framework"] = "aspnet-core"
+    elif "microsoft.net.sdk.blazor" in content or "blazor" in content:
+        be["framework"] = "blazor"
+
+    if "microsoft.entityframeworkcore" in content or "entityframework" in content:
+        be["orm"] = "entity-framework"
+    elif "dapper" in content:
+        be["orm"] = "dapper"
+
+    if "xunit" in content:
+        testing = "xunit"
+    elif "nunit" in content:
+        testing = "nunit"
+    elif "mstest" in content:
+        testing = "mstest"
+
+    # If we found .csproj or .sln but no framework, still return as C# project
+    if not be.get("framework") and (sln_files or csproj_files):
+        be["framework"] = "dotnet"
+
+    return be if be.get("framework") else None, testing
+
+
+def detect_ruby(cwd):
+    """Detect Ruby project from Gemfile."""
+    content = read_lines(os.path.join(cwd, "Gemfile"))
+    if not content:
+        return None, None
+
+    be = {"language": "ruby"}
+    testing = None
+
+    if "rails" in content or "railties" in content:
+        be["framework"] = "rails"
+    elif "sinatra" in content:
+        be["framework"] = "sinatra"
+    elif "hanami" in content:
+        be["framework"] = "hanami"
+
+    if "activerecord" in content or "rails" in content:
+        be["orm"] = "activerecord"
+    elif "sequel" in content:
+        be["orm"] = "sequel"
+
+    if "rspec" in content:
+        testing = "rspec"
+    elif "minitest" in content:
+        testing = "minitest"
+
+    return be if be.get("framework") else None, testing
+
+
+def detect_php(cwd):
+    """Detect PHP project from composer.json."""
+    composer = read_json(os.path.join(cwd, "composer.json"))
+    if not composer:
+        return None, None
+
+    require = {}
+    require.update(composer.get("require", {}))
+    require_dev = composer.get("require-dev", {})
+
+    be = {"language": "php"}
+    testing = None
+
+    if "laravel/framework" in require:
+        be["framework"] = "laravel"
+    elif "symfony/framework-bundle" in require or "symfony/symfony" in require:
+        be["framework"] = "symfony"
+    elif "magento/product-community-edition" in require or "magento/magento2-base" in require:
+        be["framework"] = "magento"
+    elif "slim/slim" in require:
+        be["framework"] = "slim"
+
+    if "doctrine/orm" in require:
+        be["orm"] = "doctrine"
+    elif "illuminate/database" in require or "laravel/framework" in require:
+        be["orm"] = "eloquent"
+
+    if "phpunit/phpunit" in require_dev or "phpunit/phpunit" in require:
+        testing = "phpunit"
+    elif "pestphp/pest" in require_dev:
+        testing = "pest"
+
+    return be if be.get("framework") else None, testing
+
+
 def detect_devops(cwd):
     """Detect CI/CD, containerization, and infrastructure."""
     devops = {}
@@ -388,6 +500,27 @@ def build_profile(cwd):
         be = java_be
     if java_testing and not testing:
         testing = java_testing
+
+    # C#/.NET detection
+    csharp_be, csharp_testing = detect_csharp(cwd)
+    if csharp_be:
+        be = csharp_be
+    if csharp_testing and not testing:
+        testing = csharp_testing
+
+    # Ruby detection
+    ruby_be, ruby_testing = detect_ruby(cwd)
+    if ruby_be:
+        be = ruby_be
+    if ruby_testing and not testing:
+        testing = ruby_testing
+
+    # PHP detection
+    php_be, php_testing = detect_php(cwd)
+    if php_be:
+        be = php_be
+    if php_testing and not testing:
+        testing = php_testing
 
     # Determine project type
     if fe and be:
