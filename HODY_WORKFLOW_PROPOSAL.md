@@ -24,31 +24,31 @@
 
 ### Problem
 
-Khi làm việc với Claude Code trên các dự án thực tế:
+When working with Claude Code on real-world projects:
 
-- Claude Code là general-purpose AI, không có workflow chuyên biệt cho development
-- Không có agent chuyên sâu cho từng domain (FE, BE, testing, review...)
-- Mỗi session mới, Claude phải khám phá lại project từ đầu
-- Không có quy trình đảm bảo code quality trước khi commit
-- Knowledge bị mất giữa các sessions
+- Claude Code is a general-purpose AI with no specialized development workflow
+- No domain-specific agents (FE, BE, testing, review...)
+- Each new session, Claude must rediscover the project from scratch
+- No process to ensure code quality before committing
+- Knowledge is lost between sessions
 
 ### Solution
 
-**Hody Workflow** là một Claude Code plugin cung cấp:
+**Hody Workflow** is a Claude Code plugin that provides:
 
-- **9 specialized agents** cho từng phase của development
-- **Auto-detect project stack** - zero config khi đổi project
-- **Shared knowledge base** - knowledge tích lũy, persist qua sessions
-- **Task-to-agents mapping** - tự động gợi ý agent phù hợp cho từng loại task
-- **Abstract design** - 1 plugin hoạt động cho mọi project, mọi tech stack
+- **9 specialized agents** for each phase of development
+- **Auto-detect project stack** — zero config when switching projects
+- **Shared knowledge base** — knowledge accumulates and persists across sessions
+- **Task-to-agents mapping** — automatically suggests the right agent for each task type
+- **Abstract design** — one plugin works for any project, any tech stack
 
 ### Design Principles
 
-1. **Project-aware, not project-specific**: Agent prompts generic, behavior specific nhờ profile
-2. **Composable, not rigid**: User gọi bất kỳ agent nào, workflow chỉ là recommended flow
-3. **Accumulative knowledge**: Mỗi agent đọc VÀ ghi knowledge base
-4. **Zero config**: Auto-detect stack, không yêu cầu user cấu hình manual
-5. **Works offline**: Không phụ thuộc external API, MCP server optional
+1. **Project-aware, not project-specific**: Agent prompts are generic; behavior is specific thanks to the profile
+2. **Composable, not rigid**: Users can call any agent directly; the workflow is just a recommended flow
+3. **Accumulative knowledge**: Every agent reads AND writes to the knowledge base
+4. **Zero config**: Auto-detect stack, no manual configuration required
+5. **Works offline**: No external API dependency; MCP server is optional
 
 ---
 
@@ -63,7 +63,7 @@ Khi làm việc với Claude Code trên các dự án thực tế:
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │ .hody/profile.yaml                                         │ │
 │  │ Auto-detect: language, framework, testing, CI/CD, infra    │ │
-│  │ Chạy 1 lần qua /hody:init, mọi agent đọc chung           │ │
+│  │ Runs once via /hody:init, shared across all agents         │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                             ↓ feeds into                         │
 │  LAYER 2: KNOWLEDGE BASE (accumulative)                         │
@@ -100,21 +100,21 @@ Khi làm việc với Claude Code trên các dự án thực tế:
 ```
 User request
      ↓
-[Hook: SessionStart] → inject project profile vào system message
+[Hook: SessionStart] → inject project profile into system message
      ↓
-Claude Code nhận request → xác định loại task
+Claude Code receives request → determines task type
      ↓
-Load agent phù hợp (từ agents/*.md)
+Loads appropriate agent (from agents/*.md)
      ↓
-Agent đọc:
-  1. .hody/profile.yaml (stack hiện tại)
-  2. .hody/knowledge/* (context tích lũy)
+Agent reads:
+  1. .hody/profile.yaml (current stack)
+  2. .hody/knowledge/* (accumulated context)
      ↓
-Agent thực hiện công việc
+Agent performs work
      ↓
-Agent ghi lại knowledge mới (nếu có) vào .hody/knowledge/
+Agent writes new knowledge (if any) to .hody/knowledge/
      ↓
-Output cho user
+Output to user
 ```
 
 ---
@@ -125,69 +125,69 @@ Output cho user
 
 | # | Agent | Group | Expertise | Input | Output | Scope |
 |---|-------|-------|-----------|-------|--------|-------|
-| 1 | researcher | THINK | External tech docs, best practices | Profile + câu hỏi | Tech summary → knowledge base | READ only |
+| 1 | researcher | THINK | External tech docs, best practices | Profile + question | Tech summary → knowledge base | READ only |
 | 2 | architect | THINK | System design, BA, flows, contracts | Requirements + KB | Architecture docs, ADRs, API contracts | READ + WRITE KB |
-| 3 | frontend | BUILD | UI/UX theo stack FE của project | Profile FE + design docs | Code FE | WRITE code FE |
-| 4 | backend | BUILD | API, business logic, DB | Profile BE + design docs | Code BE | WRITE code BE |
+| 3 | frontend | BUILD | UI/UX following project's FE stack | FE profile + design docs | FE code | WRITE FE code |
+| 4 | backend | BUILD | API, business logic, DB | BE profile + design docs | BE code | WRITE BE code |
 | 5 | code-reviewer | VERIFY | Code quality, patterns, security, perf | Code changes | Review report | READ only |
-| 6 | spec-verifier | VERIFY | Logic khớp specs/business rules | Code + specs trong KB | Verification report | READ only |
+| 6 | spec-verifier | VERIFY | Logic matches specs/business rules | Code + specs from KB | Verification report | READ only |
 | 7 | unit-tester | VERIFY | Unit tests, mocking, edge cases | Code + profile testing | Unit tests | WRITE tests |
 | 8 | integration-tester | VERIFY | API tests, E2E, business flows | Code + API contracts + KB | Integration/E2E tests | WRITE tests |
-| 9 | devops | SHIP | CI/CD, deployment, infra | Profile devops + arch docs | Pipeline configs, IaC | WRITE configs |
+| 9 | devops | SHIP | CI/CD, deployment, infra | DevOps profile + arch docs | Pipeline configs, IaC | WRITE configs |
 
 ### 3.2. Agent Prompt Template
 
-Mỗi agent `.md` theo cấu trúc sau:
+Each agent `.md` follows this structure:
 
 ```markdown
 ---
 name: agent-name
-description: Khi nào agent này được activate (cho Claude Code matching)
+description: When this agent should be activated (for Claude Code matching)
 ---
 
 # Agent: [Role Name]
 
-## Bootstrap (bắt buộc chạy đầu tiên)
-1. Read `.hody/profile.yaml` → xác định tech stack
-2. Read `.hody/knowledge/[relevant-files]` → hiểu project context
-3. Xác nhận scope công việc với user nếu cần
+## Bootstrap (must run first)
+1. Read `.hody/profile.yaml` → determine tech stack
+2. Read `.hody/knowledge/[relevant-files]` → understand project context
+3. Confirm work scope with user if needed
 
 ## Core Expertise
 - [Domain-specific knowledge]
-- Adapt behavior theo profile:
-  - Nếu profile.frontend.framework = "react" → apply React patterns
-  - Nếu profile.frontend.framework = "vue" → apply Vue patterns
+- Adapt behavior based on profile:
+  - If profile.frontend.framework = "react" → apply React patterns
+  - If profile.frontend.framework = "vue" → apply Vue patterns
 
 ## Responsibilities
-- [Cụ thể agent này làm gì]
+- [What this agent specifically does]
 
 ## Constraints
-- [Cụ thể agent này KHÔNG làm gì]
+- [What this agent specifically does NOT do]
 
 ## Output Format
-- [Format output chuẩn]
+- [Standard output format]
 
 ## Knowledge Base Update
-- Sau khi hoàn thành, ghi knowledge mới vào `.hody/knowledge/[file]`
+- After completion, write new knowledge to `.hody/knowledge/[file]`
 ```
 
 ### 3.3. Task-to-Agents Mapping
 
 ```
 ┌─────────────────────┬───────────────────────────────────────────────────────┐
-│ Task Type           │ Agents (theo thứ tự)                                  │
+│ Task Type           │ Agents (in order)                                     │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
-│ Feature mới         │ researcher → architect → FE + BE (parallel)          │
+│ New feature         │ researcher → architect → FE + BE (parallel)          │
 │                     │ → unit-tester + integration-tester                    │
 │                     │ → code-reviewer + spec-verifier → devops              │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
-│ Bug fix             │ architect (understand context) → FE hoặc BE          │
+│ Bug fix             │ architect (understand context) → FE or BE            │
 │                     │ → unit-tester → code-reviewer                         │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
-│ Refactor            │ code-reviewer (identify) → FE hoặc BE               │
+│ Refactor            │ code-reviewer (identify) → FE or BE                  │
 │                     │ → unit-tester → code-reviewer (verify)                │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
-│ API endpoint mới    │ architect (contract) → backend                       │
+│ New API endpoint    │ architect (contract) → backend                       │
 │                     │ → integration-tester → code-reviewer                  │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
 │ UI change           │ frontend → unit-tester → code-reviewer                │
@@ -196,7 +196,7 @@ description: Khi nào agent này được activate (cho Claude Code matching)
 ├─────────────────────┼───────────────────────────────────────────────────────┤
 │ Deployment          │ devops                                                │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
-│ Hotfix production   │ BE hoặc FE → unit-tester → devops                    │
+│ Production hotfix   │ BE or FE → unit-tester → devops                      │
 ├─────────────────────┼───────────────────────────────────────────────────────┤
 │ Performance issue   │ researcher (profiling best practices) → backend       │
 │                     │ → integration-tester (benchmark) → code-reviewer      │
@@ -216,7 +216,7 @@ hody-workflow/                          # Root = GitHub repo
 │   └── marketplace.json                # Marketplace registration
 │
 ├── plugins/
-│   └── hody-workflow/                  # Plugin chính
+│   └── hody-workflow/                  # Main plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json             # Plugin metadata
 │       │
@@ -277,7 +277,7 @@ hody-workflow/                          # Root = GitHub repo
 
 ### 5.1. Project Profile (`detect_stack.py`)
 
-Script Python auto-detect tech stack từ project files:
+Python script that auto-detects tech stack from project files:
 
 ```python
 # Detection rules:
@@ -312,7 +312,7 @@ Script Python auto-detect tech stack từ project files:
 
 ```yaml
 project:
-  name: my-app                    # từ package.json name hoặc directory name
+  name: my-app                    # from package.json name or directory name
   type: fullstack                 # fullstack | frontend | backend | library | monorepo
 
 frontend:
@@ -349,23 +349,23 @@ conventions:
 
 ### 5.2. Knowledge Base Templates
 
-Mỗi file trong `.hody/knowledge/` có cấu trúc chuẩn:
+Each file in `.hody/knowledge/` has a standard structure:
 
 **`architecture.md`**
 ```markdown
 # Architecture
 
 ## System Overview
-<!-- Mô tả tổng quan hệ thống -->
+<!-- High-level system description -->
 
 ## Component Diagram
-<!-- Các components chính và quan hệ -->
+<!-- Main components and their relationships -->
 
 ## Data Flow
-<!-- Luồng dữ liệu chính -->
+<!-- Primary data flows -->
 
 ## Tech Stack Rationale
-<!-- Tại sao chọn stack này -->
+<!-- Why this stack was chosen -->
 ```
 
 **`decisions.md`**
@@ -375,10 +375,10 @@ Mỗi file trong `.hody/knowledge/` có cấu trúc chuẩn:
 ## ADR-001: [Title]
 - **Date**: YYYY-MM-DD
 - **Status**: accepted | rejected | superseded
-- **Context**: Vấn đề cần giải quyết
-- **Decision**: Quyết định đã chọn
-- **Alternatives**: Các phương án khác đã xem xét
-- **Consequences**: Hệ quả của quyết định
+- **Context**: Problem to be solved
+- **Decision**: Chosen approach
+- **Alternatives**: Other options considered
+- **Consequences**: Impact of the decision
 ```
 
 **`api-contracts.md`**
@@ -391,7 +391,7 @@ Mỗi file trong `.hody/knowledge/` có cấu trúc chuẩn:
 - **Request**: { field: type }
 - **Response**: { field: type }
 - **Auth**: required | public
-- **Notes**: Đặc biệt gì
+- **Notes**: Any special considerations
 ```
 
 **`business-rules.md`**
@@ -401,84 +401,84 @@ Mỗi file trong `.hody/knowledge/` có cấu trúc chuẩn:
 ## [Domain]
 
 ### Rule: [Name]
-- **Description**: Mô tả rule
-- **Conditions**: Khi nào apply
-- **Actions**: Xảy ra gì
-- **Exceptions**: Ngoại lệ
+- **Description**: Rule description
+- **Conditions**: When it applies
+- **Actions**: What happens
+- **Exceptions**: Edge cases
 ```
 
 ### 5.3. Hook: `inject_project_context.py`
 
-Chạy ở `SessionStart`, đọc `.hody/profile.yaml` và inject vào system message:
+Runs at `SessionStart`, reads `.hody/profile.yaml` and injects into the system message:
 
 ```python
 # Pseudocode:
 # 1. Read .hody/profile.yaml
-# 2. Format thành concise summary
+# 2. Format into concise summary
 # 3. Output: {"systemMessage": "Project: my-app | Stack: React + Fastify + PostgreSQL | ..."}
 ```
 
-Mục đích: mọi agent đều biết project context NGAY KHI SESSION BẮT ĐẦU, không cần đọc file.
+Purpose: every agent knows the project context AS SOON AS THE SESSION STARTS, without needing to read files.
 
 ### 5.4. Commands
 
-**`/hody:init`** - Khởi tạo hody workflow cho project hiện tại:
-1. Chạy `detect_stack.py` → tạo `.hody/profile.yaml`
-2. Tạo `.hody/knowledge/` với các template files
-3. Add `.hody/` vào `.gitignore` nếu user muốn (hoặc commit nếu team dùng chung)
+**`/hody:init`** — Initialize hody workflow for the current project:
+1. Run `detect_stack.py` → create `.hody/profile.yaml`
+2. Create `.hody/knowledge/` with template files
+3. Add `.hody/` to `.gitignore` if user prefers (or commit if shared with team)
 
-**`/hody:start-feature`** - Bắt đầu develop feature mới:
-1. Hỏi user mô tả feature
-2. Gợi ý agents cần dùng (dựa trên task-to-agents mapping)
-3. Bắt đầu phase THINK (researcher → architect)
+**`/hody:start-feature`** — Start developing a new feature:
+1. Ask user to describe the feature
+2. Suggest agents to use (based on task-to-agents mapping)
+3. Begin THINK phase (researcher → architect)
 
-**`/hody:status`** - Xem trạng thái hiện tại:
+**`/hody:status`** — View current status:
 1. Profile summary
 2. Knowledge base overview
-3. Gợi ý agent tiếp theo nên gọi
+3. Suggest the next agent to call
 
 ---
 
 ## 6. Development Stack
 
-### Ngôn ngữ & Tools cần dùng
+### Languages & Tools
 
-| Component | Ngôn ngữ | Lý do |
-|-----------|---------|-------|
-| Agent prompts | Markdown | Claude Code plugin format, không cần compile |
+| Component | Language | Reason |
+|-----------|----------|--------|
+| Agent prompts | Markdown | Claude Code plugin format, no compilation needed |
 | Skill docs | Markdown (YAML frontmatter) | Claude Code plugin format |
 | `detect_stack.py` | Python 3 | Parse YAML/JSON/TOML, filesystem operations |
-| `inject_project_context.py` | Python 3 | Đọc YAML, output JSON cho Claude Code hook |
+| `inject_project_context.py` | Python 3 | Read YAML, output JSON for Claude Code hook |
 | Commands | Markdown | Claude Code plugin format |
 | Hook config | JSON (`hooks.json`) | Claude Code plugin format |
-| Project profile | YAML | Human-readable, dễ edit manual |
-| Knowledge base | Markdown | Human-readable, versionable, Claude thân thiện |
+| Project profile | YAML | Human-readable, easy to edit manually |
+| Knowledge base | Markdown | Human-readable, versionable, Claude-friendly |
 
 ### Dependencies
 
 ```
-Python 3.8+      ← đã có sẵn trên macOS/Linux
-PyYAML            ← parse profile.yaml (hoặc dùng built-in nếu tránh deps)
-toml              ← parse Cargo.toml, pyproject.toml (Python 3.11+ có built-in)
+Python 3.8+      ← already available on macOS/Linux
+PyYAML            ← parse profile.yaml (or use built-in to avoid deps)
+toml              ← parse Cargo.toml, pyproject.toml (Python 3.11+ has built-in)
 ```
 
-Minimize external dependencies. Ưu tiên dùng Python stdlib. PyYAML là dependency duy nhất cần thiết.
+Minimize external dependencies. Prefer Python stdlib. PyYAML is the only required dependency.
 
 ### Testing
 
 ```bash
-# Unit tests cho detect_stack.py
+# Unit tests for detect_stack.py
 python -m pytest test/test_detect_stack.py
 
-# Test với mock project structures
-# Tạo temp directories giả lập React project, Go project, Python project...
-# Verify profile.yaml output đúng
+# Test with mock project structures
+# Create temp directories simulating React project, Go project, Python project...
+# Verify profile.yaml output is correct
 
 # Integration test
-# 1. Chạy /hody:init trên project thật
-# 2. Verify profile.yaml chính xác
-# 3. Verify agents đọc được profile
-# 4. Verify knowledge base files được tạo
+# 1. Run /hody:init on a real project
+# 2. Verify profile.yaml is accurate
+# 3. Verify agents can read the profile
+# 4. Verify knowledge base files are created
 ```
 
 ---
@@ -488,112 +488,112 @@ python -m pytest test/test_detect_stack.py
 ### 7.1. First Time Setup
 
 ```bash
-# User mở project và start Claude Code
+# User opens project and starts Claude Code
 cd ~/projects/my-saas-app
 claude
 
-# Khởi tạo hody workflow
+# Initialize hody workflow
 User: /hody:init
 
-# Claude Code chạy:
+# Claude Code runs:
 # 1. detect_stack.py scans project
-# 2. Tạo .hody/profile.yaml
-# 3. Tạo .hody/knowledge/ với templates
+# 2. Creates .hody/profile.yaml
+# 3. Creates .hody/knowledge/ with templates
 # 4. Output: "Detected: React 18 + TypeScript + Fastify + PostgreSQL + GitHub Actions"
 
-# Từ giờ mọi session đều auto-inject project context
+# From now on, every session auto-injects project context
 ```
 
 ### 7.2. Feature Development (full workflow)
 
 ```bash
-User: "Tôi cần implement chức năng user authentication với OAuth Google"
+User: "I need to implement user authentication with Google OAuth"
 
-# Claude Code nhận diện: feature mới → gợi ý full workflow
+# Claude Code identifies: new feature → suggests full workflow
 
 # ─── PHASE 1: THINK ───
-# researcher agent activate
-Claude (researcher): "Để tôi research OAuth Google best practices cho stack React + Fastify..."
-  → Tìm hiểu @react-oauth/google, passport-google-oauth20
-  → Ghi findings vào .hody/knowledge/decisions.md
+# researcher agent activates
+Claude (researcher): "Let me research Google OAuth best practices for React + Fastify stack..."
+  → Investigates @react-oauth/google, passport-google-oauth20
+  → Writes findings to .hody/knowledge/decisions.md
 
-# architect agent activate
-Claude (architect): "Dựa trên research, tôi thiết kế auth flow như sau..."
-  → Tạo sequence diagram trong .hody/knowledge/architecture.md
-  → Định nghĩa API contracts trong .hody/knowledge/api-contracts.md
-  → Ghi business rules (session timeout, refresh token) vào business-rules.md
+# architect agent activates
+Claude (architect): "Based on the research, here's the auth flow design..."
+  → Creates sequence diagram in .hody/knowledge/architecture.md
+  → Defines API contracts in .hody/knowledge/api-contracts.md
+  → Writes business rules (session timeout, refresh token) to business-rules.md
 
 # ─── PHASE 2: BUILD ───
-# backend agent activate
-Claude (backend): "Implement auth API theo contracts đã define..."
+# backend agent activates
+Claude (backend): "Implementing auth API according to defined contracts..."
   → POST /api/auth/google
   → GET /api/auth/me
   → POST /api/auth/refresh
   → Database migration: users table
 
-# frontend agent activate
-Claude (frontend): "Implement login UI và OAuth flow..."
-  → LoginPage component với Google OAuth button
+# frontend agent activates
+Claude (frontend): "Implementing login UI and OAuth flow..."
+  → LoginPage component with Google OAuth button
   → AuthContext provider
   → Protected route wrapper
 
 # ─── PHASE 3: VERIFY ───
-# unit-tester agent activate
-Claude (unit-tester): "Viết unit tests cho auth modules..."
+# unit-tester agent activates
+Claude (unit-tester): "Writing unit tests for auth modules..."
   → Test token validation edge cases
   → Test AuthContext behavior
   → Test API handler logic
 
-# integration-tester agent activate
-Claude (integration-tester): "Viết integration tests cho auth flow..."
+# integration-tester agent activates
+Claude (integration-tester): "Writing integration tests for auth flow..."
   → Test: Google OAuth → callback → token → profile
   → Test: expired token → refresh → new token
   → Test: invalid token → 401
 
-# code-reviewer agent activate
-Claude (code-reviewer): "Review toàn bộ auth implementation..."
+# code-reviewer agent activates
+Claude (code-reviewer): "Reviewing the entire auth implementation..."
   → Security: token storage, CSRF, XSS
   → Code quality: error handling, naming
   → Performance: database queries
 
-# spec-verifier agent activate
-Claude (spec-verifier): "Verify implementation khớp với specs..."
+# spec-verifier agent activates
+Claude (spec-verifier): "Verifying implementation matches specs..."
   → Check API contracts match actual endpoints
   → Check business rules implemented correctly
   → Check edge cases covered
 
 # ─── PHASE 4: SHIP ───
-# devops agent activate (nếu cần)
-Claude (devops): "Update CI pipeline cho auth..."
-  → Thêm env vars cho Google OAuth credentials
+# devops agent activates (if needed)
+Claude (devops): "Updating CI pipeline for auth..."
+  → Add env vars for Google OAuth credentials
   → Update deployment config
 ```
 
-### 7.3. Quick Tasks (không cần full workflow)
+### 7.3. Quick Tasks (no full workflow needed)
 
 ```bash
-# Bug fix - chỉ cần 2-3 agents
-User: "Fix bug: login button không redirect đúng sau khi authenticate"
-  → architect (hiểu context từ KB)
+# Bug fix — only 2-3 agents needed
+User: "Fix bug: login button doesn't redirect correctly after authentication"
+  → architect (understand context from KB)
   → frontend (fix code)
   → unit-tester (verify fix)
 
-# Code review - chỉ cần 1 agent
+# Code review — only 1 agent needed
 User: "Review file server/auth/handler.ts"
   → code-reviewer
 
-# Research - chỉ cần 1 agent
-User: "Tìm hiểu cách implement rate limiting cho API"
+# Research — only 1 agent needed
+User: "Research how to implement rate limiting for the API"
   → researcher
 ```
 
-### 7.4. Gọi agent trực tiếp
+### 7.4. Calling agents directly
 
 ```bash
-# User có thể gọi bất kỳ agent nào trực tiếp
-User: "Dùng agent backend để implement thêm endpoint DELETE /api/users/:id"
-User: "Dùng agent code-reviewer để review PR này"
-User: "Dùng agent devops để setup monitoring"
+# Users can call any agent directly
+User: "Use agent backend to implement a DELETE /api/users/:id endpoint"
+User: "Use agent code-reviewer to review this PR"
+User: "Use agent devops to setup monitoring"
 ```
 
 ---
@@ -602,15 +602,15 @@ User: "Dùng agent devops để setup monitoring"
 
 ### 8.1. GitHub Repository
 
-Tạo repo mới trên GitHub account cá nhân:
+Create a new repo on your personal GitHub account:
 
-- **Repo name**: `hody-workflow` (hoặc tên bạn chọn)
+- **Repo name**: `hody-workflow` (or your preferred name)
 - **URL**: `github.com/<your-username>/hody-workflow`
-- **Visibility**: Public (để user khác cài được) hoặc Private (chỉ mình dùng)
+- **Visibility**: Public (so other users can install) or Private (personal use only)
 
 ### 8.2. Marketplace Registration
 
-File `.claude-plugin/marketplace.json` ở root repo:
+File `.claude-plugin/marketplace.json` at repo root:
 
 ```json
 {
@@ -628,8 +628,8 @@ File `.claude-plugin/marketplace.json` ở root repo:
 }
 ```
 
-- `name: "hody"` → đây là tên marketplace, user sẽ dùng `@hody` để reference
-- Sau này muốn thêm plugin khác (vd: `hody-voice`, `hody-mcp`), chỉ cần thêm entry vào `plugins` array
+- `name: "hody"` → this is the marketplace name; users will reference it with `@hody`
+- To add more plugins later (e.g., `hody-voice`, `hody-mcp`), just add entries to the `plugins` array
 
 ### 8.3. User Installation
 
@@ -641,9 +641,9 @@ File `.claude-plugin/marketplace.json` ở root repo:
 /plugin install hody-workflow@hody
 
 # Step 3: Restart Claude Code
-# (plugins load khi khởi động)
+# (plugins load at startup)
 
-# Step 4: Init hody workflow trong bất kỳ project nào
+# Step 4: Init hody workflow in any project
 cd ~/projects/my-app
 claude
 /hody:init
@@ -651,48 +651,48 @@ claude
 
 ### 8.4. Update Plugin
 
-Khi bạn push code mới lên GitHub:
+When you push new code to GitHub:
 
 ```bash
-# User update plugin
+# User updates plugin
 /plugin update hody-workflow@hody
 
-# Hoặc reinstall
+# Or reinstall
 /plugin install hody-workflow@hody
 ```
 
-### 8.5. Cái gì nên Git trong target project
+### 8.5. What to commit in the target project
 
-Khi user chạy `/hody:init` trong project của họ, sẽ tạo ra `.hody/` directory:
+When a user runs `/hody:init` in their project, it creates the `.hody/` directory:
 
 ```
 .hody/
-├── profile.yaml              ← NÊN commit (team dùng chung profile)
+├── profile.yaml              ← SHOULD commit (team shares the profile)
 └── knowledge/
-    ├── architecture.md       ← NÊN commit (shared knowledge)
-    ├── decisions.md          ← NÊN commit
-    ├── api-contracts.md      ← NÊN commit
-    ├── business-rules.md     ← NÊN commit
-    ├── tech-debt.md          ← NÊN commit
-    └── runbook.md            ← NÊN commit
+    ├── architecture.md       ← SHOULD commit (shared knowledge)
+    ├── decisions.md          ← SHOULD commit
+    ├── api-contracts.md      ← SHOULD commit
+    ├── business-rules.md     ← SHOULD commit
+    ├── tech-debt.md          ← SHOULD commit
+    └── runbook.md            ← SHOULD commit
 ```
 
-Knowledge base SHOULD be committed - đây là tài sản của team, không phải temp files.
+Knowledge base SHOULD be committed — it's a team asset, not temp files.
 
 ---
 
 ## 9. Step-by-step Build Guide
 
-Các bước cụ thể để build hody-workflow plugin từ đầu.
+Specific steps to build the hody-workflow plugin from scratch.
 
-### Step 1: Tạo GitHub repo
+### Step 1: Create GitHub repo
 
 ```bash
 mkdir hody-workflow
 cd hody-workflow
 git init
 
-# Tạo .gitignore
+# Create .gitignore
 cat > .gitignore << 'EOF'
 __pycache__/
 *.pyc
@@ -707,17 +707,17 @@ EOF
 git add .gitignore
 git commit -m "init: create repo"
 
-# Tạo repo trên GitHub và push
+# Create repo on GitHub and push
 gh repo create hody-workflow --public --source=. --push
 ```
 
-### Step 2: Tạo marketplace config
+### Step 2: Create marketplace config
 
 ```bash
 mkdir -p .claude-plugin
 ```
 
-Tạo `.claude-plugin/marketplace.json`:
+Create `.claude-plugin/marketplace.json`:
 ```json
 {
   "name": "hody",
@@ -734,7 +734,7 @@ Tạo `.claude-plugin/marketplace.json`:
 }
 ```
 
-### Step 3: Tạo plugin structure
+### Step 3: Create plugin structure
 
 ```bash
 # Plugin root
@@ -750,7 +750,7 @@ mkdir -p plugins/hody-workflow/output-styles
 mkdir -p test
 ```
 
-Tạo `plugins/hody-workflow/.claude-plugin/plugin.json`:
+Create `plugins/hody-workflow/.claude-plugin/plugin.json`:
 ```json
 {
   "name": "hody-workflow",
@@ -772,9 +772,9 @@ Tạo `plugins/hody-workflow/.claude-plugin/plugin.json`:
 }
 ```
 
-### Step 4: Viết hooks.json
+### Step 4: Write hooks.json
 
-Tạo `plugins/hody-workflow/hooks/hooks.json`:
+Create `plugins/hody-workflow/hooks/hooks.json`:
 ```json
 {
   "hooks": {
@@ -793,14 +793,14 @@ Tạo `plugins/hody-workflow/hooks/hooks.json`:
 }
 ```
 
-### Step 5: Viết inject_project_context.py
+### Step 5: Write inject_project_context.py
 
-Tạo `plugins/hody-workflow/hooks/inject_project_context.py`:
+Create `plugins/hody-workflow/hooks/inject_project_context.py`:
 ```python
 #!/usr/bin/env python3
 """
-SessionStart hook: đọc .hody/profile.yaml và inject project context
-vào system message để mọi agent đều biết tech stack hiện tại.
+SessionStart hook: reads .hody/profile.yaml and injects project context
+into the system message so every agent knows the current tech stack.
 """
 import json
 import sys
@@ -813,15 +813,15 @@ def main():
 
         profile_path = os.path.join(cwd, ".hody", "profile.yaml")
         if not os.path.isfile(profile_path):
-            # Không có profile → skip
+            # No profile → skip
             print("{}")
             sys.exit(0)
 
-        # Đọc profile (plain text, không cần PyYAML cho simple inject)
+        # Read profile (plain text, no PyYAML needed for simple inject)
         with open(profile_path, "r") as f:
             profile_content = f.read()
 
-        # Inject vào system message
+        # Inject into system message
         summary = f"[Hody Workflow] Project profile loaded from .hody/profile.yaml"
         output = {
             "systemMessage": summary
@@ -831,7 +831,7 @@ def main():
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(0)  # Không block session nếu hook lỗi
+        sys.exit(0)  # Don't block session if hook fails
 
 if __name__ == "__main__":
     main()
@@ -841,21 +841,21 @@ if __name__ == "__main__":
 chmod +x plugins/hody-workflow/hooks/inject_project_context.py
 ```
 
-### Step 6: Viết detect_stack.py
+### Step 6: Write detect_stack.py
 
-Tạo `plugins/hody-workflow/skills/project-profile/scripts/detect_stack.py`:
-- Scan các config files (package.json, go.mod, requirements.txt, pyproject.toml...)
+Create `plugins/hody-workflow/skills/project-profile/scripts/detect_stack.py`:
+- Scan config files (package.json, go.mod, requirements.txt, pyproject.toml...)
 - Output `.hody/profile.yaml`
-- Bắt đầu với top 5 stacks: Node/React, Node/Vue, Go, Python/Django, Python/FastAPI
-- Mở rộng dần
+- Start with top 5 stacks: Node/React, Node/Vue, Go, Python/Django, Python/FastAPI
+- Expand gradually
 
 ```bash
 chmod +x plugins/hody-workflow/skills/project-profile/scripts/detect_stack.py
 ```
 
-### Step 7: Viết SKILL.md cho project-profile
+### Step 7: Write SKILL.md for project-profile
 
-Tạo `plugins/hody-workflow/skills/project-profile/SKILL.md`:
+Create `plugins/hody-workflow/skills/project-profile/SKILL.md`:
 ```markdown
 ---
 name: project-profile
@@ -866,7 +866,7 @@ description: Use this skill when user asks to "detect project stack",
 
 # Project Profile
 
-Auto-detect project tech stack và tạo .hody/profile.yaml.
+Auto-detect project tech stack and create .hody/profile.yaml.
 
 ## Usage
 
@@ -879,19 +879,19 @@ python3 ${SKILL_ROOT}/scripts/detect_stack.py --cwd .
 Creates `.hody/profile.yaml` with detected stack info.
 ```
 
-### Step 8: Viết 3 agents đầu tiên (MVP)
+### Step 8: Write first 3 agents (MVP)
 
-Bắt đầu với 3 agents quan trọng nhất:
+Start with the 3 most important agents:
 
 1. `plugins/hody-workflow/agents/architect.md`
 2. `plugins/hody-workflow/agents/code-reviewer.md`
 3. `plugins/hody-workflow/agents/unit-tester.md`
 
-Mỗi file theo template ở [Section 3.2](#32-agent-prompt-template).
+Each file follows the template from [Section 3.2](#32-agent-prompt-template).
 
-### Step 9: Viết command /hody:init
+### Step 9: Write /hody:init command
 
-Tạo `plugins/hody-workflow/commands/init.md`:
+Create `plugins/hody-workflow/commands/init.md`:
 ```markdown
 ---
 name: init
@@ -907,9 +907,9 @@ Initialize hody workflow:
 3. Show detected stack summary
 ```
 
-### Step 10: Viết knowledge base templates
+### Step 10: Write knowledge base templates
 
-Tạo các files trong `plugins/hody-workflow/skills/knowledge-base/templates/`:
+Create files in `plugins/hody-workflow/skills/knowledge-base/templates/`:
 - `architecture.md`
 - `decisions.md`
 - `api-contracts.md`
@@ -917,11 +917,11 @@ Tạo các files trong `plugins/hody-workflow/skills/knowledge-base/templates/`:
 - `tech-debt.md`
 - `runbook.md`
 
-Mỗi file chứa template chuẩn (xem [Section 5.2](#52-knowledge-base-templates)).
+Each file contains the standard template (see [Section 5.2](#52-knowledge-base-templates)).
 
-### Step 11: Viết README.md
+### Step 11: Write README.md
 
-Tạo `README.md` (repo root) và `plugins/hody-workflow/README.md` (plugin docs):
+Create `README.md` (repo root) and `plugins/hody-workflow/README.md` (plugin docs):
 - Overview
 - Installation
 - Quick start
@@ -931,21 +931,21 @@ Tạo `README.md` (repo root) và `plugins/hody-workflow/README.md` (plugin docs
 ### Step 12: Test locally
 
 ```bash
-# Cài plugin locally để test
+# Install plugin locally for testing
 cd ~/projects/some-test-project
 claude
 
-# Add marketplace từ local path (hoặc từ GitHub sau khi push)
+# Add marketplace from local path (or from GitHub after pushing)
 /plugin marketplace add <your-username>/hody-workflow
 
 # Install plugin
 /plugin install hody-workflow@hody
 
-# Restart Claude Code, rồi test
+# Restart Claude Code, then test
 /hody:init
 ```
 
-### Step 13: Push và publish
+### Step 13: Push and publish
 
 ```bash
 cd ~/path/to/hody-workflow
@@ -954,7 +954,7 @@ git commit -m "feat: initial hody-workflow plugin with 3 MVP agents"
 git push origin main
 ```
 
-Từ giờ bất kỳ ai cũng có thể cài plugin bằng:
+From now on, anyone can install the plugin with:
 ```bash
 /plugin marketplace add <your-username>/hody-workflow
 /plugin install hody-workflow@hody
@@ -966,47 +966,81 @@ Từ giờ bất kỳ ai cũng có thể cài plugin bằng:
 
 ### Phase 1: Foundation (MVP)
 
-**Goal**: Plugin hoạt động được với 3 agents cơ bản
+**Goal**: Plugin works with 3 basic agents
 
 - [ ] Repo setup + marketplace.json + plugin.json
-- [ ] `detect_stack.py` - auto-detect top 5 popular stacks
-- [ ] `inject_project_context.py` - SessionStart hook
-- [ ] `hooks.json` - hook registration
+- [ ] `detect_stack.py` — auto-detect top 5 popular stacks
+- [ ] `inject_project_context.py` — SessionStart hook
+- [ ] `hooks.json` — hook registration
 - [ ] `/hody:init` command
 - [ ] 3 agents: **architect**, **code-reviewer**, **unit-tester**
 - [ ] Knowledge base templates (6 files)
-- [ ] SKILL.md cho project-profile
+- [ ] SKILL.md for project-profile
 - [ ] README.md
-- [ ] Basic tests cho detect_stack.py
+- [ ] Basic tests for detect_stack.py
 
-**Deliverable**: User có thể `/hody:init` → gọi 3 agents → agents aware project stack
+**Deliverable**: User can `/hody:init` → call 3 agents → agents are aware of project stack
 
 ### Phase 2: Full Agent Suite
 
-**Goal**: Đủ 9 agents, task-to-agents mapping
+**Goal**: All 9 agents, task-to-agents mapping
 
-- [ ] 6 agents còn lại: researcher, frontend, backend, spec-verifier, integration-tester, devops
+- [ ] 6 remaining agents: researcher, frontend, backend, spec-verifier, integration-tester, devops
 - [ ] `/hody:start-feature` command (orchestrate workflow)
 - [ ] `/hody:status` command
 - [ ] Output styles (review-report, test-report, design-doc)
 - [ ] Knowledge base management skill (SKILL.md)
-- [ ] Detect thêm stacks (top 10)
+- [ ] Extended stack detection (top 10)
 
-**Deliverable**: Full development workflow chạy end-to-end
+**Deliverable**: Full development workflow running end-to-end
 
 ### Phase 3: Intelligence
 
-**Goal**: Smarter detection, richer knowledge base
+**Goal**: Smarter detection, richer knowledge base, agent collaboration
 
-- [ ] Detect thêm stacks (Rust, Java, C#, Ruby, PHP...)
-- [ ] Detect monorepo structures (nx, turborepo, lerna)
-- [ ] Auto-update profile khi dependencies thay đổi
-- [ ] Knowledge base search/query
-- [ ] Agent collaboration patterns (agent gọi agent)
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 1 | C#/.NET stack detection | Planned | Detect `.csproj`, `.sln`, `global.json`; frameworks: ASP.NET Core, Blazor; ORM: Entity Framework; test: xUnit, NUnit, MSTest |
+| 2 | Ruby stack detection | Planned | Detect `Gemfile`, `Rakefile`; frameworks: Rails, Sinatra, Hanami; test: RSpec, Minitest |
+| 3 | PHP stack detection | Planned | Detect `composer.json`; frameworks: Laravel, Symfony, Magento; test: PHPUnit, Pest |
+| 4 | Monorepo detection | Planned | Detect `nx.json`, `turbo.json`, `lerna.json`, `pnpm-workspace.yaml`; identify workspace root vs sub-projects |
+| 5 | Monorepo profile format | Planned | Extend `profile.yaml` with `workspaces[]` — each sub-project has its own language, framework, testing |
+| 6 | Auto-update profile | Planned | `/hody-workflow:refresh` command or hook to detect config file changes → re-run `detect_stack.py` |
+| 7 | Knowledge base search | Planned | Skill/command to search across `.hody/knowledge/*.md` — supports keyword search and section filtering |
+| 8 | Agent collaboration | Planned | Delegation pattern — agents can recommend/invoke other agents (e.g., architect → researcher, code-reviewer → unit-tester) |
+| 9 | Unit tests for new stacks | Planned | Tests for C#, Ruby, PHP detection + monorepo detection (extend `test_detect_stack.py`) |
+| 10 | Docs update | Planned | Update README, USAGE_GUIDE with Phase 3 features upon completion |
+
+**Technical Details**:
+
+**New stack detection (Tasks 1-3)**: Extend `detect_stack.py` — add detection functions following the same pattern as Node.js/Go/Python/Rust/Java. Each stack detects: language, framework(s), testing tool(s), package manager.
+
+**Monorepo (Tasks 4-5)**: `detect_stack.py` checks for monorepo markers at root. If detected, scans each workspace/package to create individual profiles. Output format:
+```yaml
+monorepo:
+  tool: turborepo | nx | lerna | pnpm-workspaces
+  workspaces:
+    - path: packages/frontend
+      language: TypeScript
+      framework: React
+    - path: packages/api
+      language: Go
+      framework: Gin
+```
+
+**Auto-update profile (Task 6)**: Add `/hody-workflow:refresh` command — wrapper that re-runs `detect_stack.py`. Optionally add a SessionStart hook that checks config file modification times vs profile.yaml.
+
+**Knowledge base search (Task 7)**: Skill reads all `.hody/knowledge/*.md` files, supports: keyword search (grep-like), list sections/headings, filter by file. Output as snippets with context.
+
+**Agent collaboration (Task 8)**: Add `## Collaboration` section in agent prompts — defines when to suggest the user invoke another agent. No auto-invoke (Claude Code doesn't support it); instead, suggests via output message.
+
+**Note**: "Detect more stacks (Rust, Java)" was completed in Phase 2 — Phase 3 only covers C#, Ruby, PHP.
+
+**Deliverable**: Plugin detects 8+ stacks + monorepo, has knowledge base search, agents know how to delegate to each other
 
 ### Phase 4: Ecosystem
 
-**Goal**: Tích hợp với tools bên ngoài
+**Goal**: Integration with external tools
 
 - [ ] MCP integration (GitHub, Linear, Jira)
 - [ ] Pre-commit hooks (quality gates)
@@ -1021,27 +1055,27 @@ Từ giờ bất kỳ ai cũng có thể cài plugin bằng:
 
 | Constraint | Impact | Mitigation |
 |-----------|--------|-----------|
-| Agent prompts là static markdown | Không thể template dynamically | Agents đọc profile.yaml at runtime |
-| Hooks timeout max 60s | detect_stack phải nhanh | Chỉ scan config files, không scan toàn bộ codebase |
-| Không có persistent state ngoài files | Session state mất khi restart | Dùng `.hody/` directory trên filesystem |
-| Plugin chỉ load khi Claude Code khởi động | Thay đổi plugin cần restart | Dùng session hooks cho dynamic behavior |
+| Agent prompts are static markdown | Cannot template dynamically | Agents read profile.yaml at runtime |
+| Hooks timeout max 60s | detect_stack must be fast | Only scan config files, not the entire codebase |
+| No persistent state beyond files | Session state lost on restart | Use `.hody/` directory on filesystem |
+| Plugins only load at Claude Code startup | Plugin changes require restart | Use session hooks for dynamic behavior |
 
 ### Risks
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
-| Profile detection sai | Medium | Agent nhận sai context | Cho phép user edit manual profile.yaml |
-| Agent prompts quá dài | Medium | Tốn context window | Giữ prompts concise, dùng references |
-| Knowledge base files conflict khi merge | Low | Git conflicts | Dùng append-only format, clear sections |
-| Claude Code plugin API thay đổi | Low | Plugin hỏng | Follow Claude Code changelog, maintain compatibility |
+| Profile detection is incorrect | Medium | Agent gets wrong context | Allow user to manually edit profile.yaml |
+| Agent prompts too long | Medium | Uses too much context window | Keep prompts concise, use references |
+| Knowledge base files conflict on merge | Low | Git conflicts | Use append-only format, clear sections |
+| Claude Code plugin API changes | Low | Plugin breaks | Follow Claude Code changelog, maintain compatibility |
 
 ### Out of Scope (v1)
 
 - IDE integration (VS Code extension)
-- Real-time collaboration giữa multiple users
+- Real-time collaboration between multiple users
 - Custom agent creation UI
-- Agent marketplace (user share agents)
-- Automatic agent selection (v1 dùng manual + suggestion)
+- Agent marketplace (users share agents)
+- Automatic agent selection (v1 uses manual + suggestion)
 
 ---
 
@@ -1049,30 +1083,30 @@ Từ giờ bất kỳ ai cũng có thể cài plugin bằng:
 
 ### Commands
 
-| Command | Mô tả |
-|---------|-------|
-| `/hody:init` | Detect stack, tạo profile + knowledge base |
-| `/hody:start-feature` | Bắt đầu feature development workflow |
-| `/hody:status` | Xem profile + KB summary + next steps |
+| Command | Description |
+|---------|-------------|
+| `/hody:init` | Detect stack, create profile + knowledge base |
+| `/hody:start-feature` | Start feature development workflow |
+| `/hody:status` | View profile + KB summary + next steps |
 
 ### Agents
 
-| Agent | Gọi khi |
-|-------|---------|
-| researcher | Cần tìm hiểu tech, docs, best practices |
-| architect | Cần design system, flows, API contracts, business rules |
-| frontend | Cần implement UI |
-| backend | Cần implement API, business logic, DB |
-| code-reviewer | Cần review code quality |
-| spec-verifier | Cần verify code đúng specs |
-| unit-tester | Cần viết unit tests |
-| integration-tester | Cần viết API/E2E tests |
-| devops | Cần CI/CD, deployment, infra |
+| Agent | When to use |
+|-------|-------------|
+| researcher | Need to research tech, docs, best practices |
+| architect | Need to design systems, flows, API contracts, business rules |
+| frontend | Need to implement UI |
+| backend | Need to implement API, business logic, DB |
+| code-reviewer | Need to review code quality |
+| spec-verifier | Need to verify code matches specs |
+| unit-tester | Need to write unit tests |
+| integration-tester | Need to write API/E2E tests |
+| devops | Need CI/CD, deployment, infra |
 
-### Files tạo trong target project
+### Files created in target project
 
-| File | Mô tả |
-|------|-------|
+| File | Description |
+|------|-------------|
 | `.hody/profile.yaml` | Project tech stack (auto-generated) |
 | `.hody/knowledge/architecture.md` | System design |
 | `.hody/knowledge/decisions.md` | Architecture Decision Records |

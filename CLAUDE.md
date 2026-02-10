@@ -70,9 +70,9 @@ python3 -m unittest test.test_detect_stack -v
 
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
-- **Phase 3 (Intelligence)**: Not started — monorepo support, auto-update profile, knowledge base search
+- **Phase 3 (Intelligence)**: Planned — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna), auto-update profile, knowledge base search, agent collaboration patterns
 - **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
 
 ## Language Note
 
-The proposal document (`HODY_WORKFLOW_PROPOSAL.md`) is written in Vietnamese. Code, configs, and agent prompts should be written in English.
+Most docs and code are in English. The `USAGE_GUIDE.md` and `PROGRESS.md` are in Vietnamese (internal/personal docs). Code, configs, and agent prompts should be written in English.

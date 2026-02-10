@@ -192,7 +192,22 @@ When a new version is released:
 | 5 | Extended stack detection (Rust, Java/Kotlin, Angular, Svelte) | Done |
 | 6 | Unit tests expanded (31 tests) | Done |
 
-### Phase 3-4
+### Phase 3: Intelligence — Planned
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | C#/.NET stack detection (.csproj, .sln, ASP.NET, Entity Framework) | Planned |
+| 2 | Ruby stack detection (Gemfile, Rails, RSpec, Sinatra) | Planned |
+| 3 | PHP stack detection (composer.json, Laravel, Symfony, PHPUnit) | Planned |
+| 4 | Monorepo detection (nx, turborepo, lerna, pnpm-workspaces) | Planned |
+| 5 | Monorepo profile format (workspace-level profile.yaml) | Planned |
+| 6 | Auto-update profile (`/hody-workflow:refresh` command) | Planned |
+| 7 | Knowledge base search/query | Planned |
+| 8 | Agent collaboration patterns (delegation) | Planned |
+| 9 | Unit tests for new stacks + monorepo | Planned |
+| 10 | Docs update | Planned |
+
+### Phase 4: Ecosystem — Planned
 
 See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in the proposal.
 
