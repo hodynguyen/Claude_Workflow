@@ -1,7 +1,7 @@
 {
   "name": "hody-workflow",
   "description": "Project-aware development workflow with 9 specialized AI agents",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": {
     "name": "Hody",
     "email": "nguyenthanhdat23012003@gmail.com"
