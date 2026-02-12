@@ -58,3 +58,10 @@ Severity levels: `critical` (security/data loss), `high` (bugs), `medium` (quali
 After review, if recurring patterns are found:
 - Common issues → append to `tech-debt.md`
 - Architectural concerns → note in `architecture.md`
+
+## Collaboration
+After your review, suggest the user invoke the next appropriate agent:
+- If test coverage gaps found → suggest **unit-tester** or **integration-tester** to add tests
+- If architectural issues found → suggest **architect** to revisit the design
+- If security vulnerabilities found → suggest **backend** or **frontend** to fix, then re-review
+- If spec deviations found → suggest **spec-verifier** for formal verification

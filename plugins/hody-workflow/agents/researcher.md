@@ -49,3 +49,9 @@ After completing research:
 - Technical findings → append to `architecture.md` or `decisions.md`
 - Security findings → note in `tech-debt.md`
 - Operational insights → note in `runbook.md`
+
+## Collaboration
+When your research is complete, suggest the user invoke the next appropriate agent:
+- After researching a technology or approach → suggest **architect** to design the solution
+- After comparing libraries or frameworks → suggest **architect** to make the final decision and write an ADR
+- If research reveals security concerns → suggest **code-reviewer** to audit existing code

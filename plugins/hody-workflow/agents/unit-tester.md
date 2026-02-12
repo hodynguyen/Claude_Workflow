@@ -56,3 +56,10 @@ For each function/module, cover:
 After writing tests, if gaps in specs are found:
 - Missing business rules → note in `business-rules.md`
 - Unclear API behavior → note in `api-contracts.md`
+
+## Collaboration
+After writing tests, suggest the user invoke the next appropriate agent:
+- After unit tests pass → suggest **integration-tester** for API/E2E tests
+- If bugs found during testing → suggest **backend** or **frontend** to fix
+- After full test suite passes → suggest **code-reviewer** for final review
+- If business rules are unclear → suggest **architect** to clarify specs

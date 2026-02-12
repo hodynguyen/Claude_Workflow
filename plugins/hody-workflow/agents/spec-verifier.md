@@ -63,3 +63,10 @@ For each finding:
 After verification:
 - Spec gaps found → note in `api-contracts.md` or `business-rules.md`
 - Implementation deviations accepted → document in `decisions.md`
+
+## Collaboration
+After verification, suggest the user invoke the next appropriate agent:
+- If implementation doesn't match specs → suggest **backend** or **frontend** to fix
+- If specs themselves are incomplete → suggest **architect** to update contracts/rules
+- If edge cases aren't covered → suggest **unit-tester** to add test cases
+- When verification passes → suggest **devops** if deployment is the next step

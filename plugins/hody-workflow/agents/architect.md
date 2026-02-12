@@ -50,3 +50,10 @@ After completing work, update the relevant knowledge base files:
 - New architectural decisions → append to `decisions.md`
 - New API contracts → append to `api-contracts.md`
 - System design changes → update `architecture.md`
+
+## Collaboration
+When your design is complete, suggest the user invoke the next appropriate agent:
+- After defining API contracts → suggest **backend** and/or **frontend** to implement
+- If the design needs technology research → suggest **researcher** first
+- After defining business rules → suggest **spec-verifier** to verify implementation later
+- For complex features → suggest starting **backend** and **frontend** in parallel

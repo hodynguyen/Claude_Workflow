@@ -57,3 +57,11 @@ After completing work:
 - New business rules discovered → append to `business-rules.md`
 - Backend tech debt → note in `tech-debt.md`
 - Deployment notes (new env vars, migrations) → note in `runbook.md`
+
+## Collaboration
+When your implementation is complete, suggest the user invoke the next appropriate agent:
+- After implementing API endpoints → suggest **integration-tester** for API tests
+- After implementing business logic → suggest **unit-tester** for unit tests
+- Before merging → suggest **code-reviewer** for a quality review
+- If deployment config is needed → suggest **devops** for CI/CD updates
+- If API contracts need updating → suggest **architect** to revise contracts

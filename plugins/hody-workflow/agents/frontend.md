@@ -52,3 +52,10 @@ After completing work:
 - New component patterns → note in `architecture.md`
 - Frontend-specific tech debt → note in `tech-debt.md`
 - UI-related business rules discovered → note in `business-rules.md`
+
+## Collaboration
+When your implementation is complete, suggest the user invoke the next appropriate agent:
+- After implementing UI components → suggest **unit-tester** to write component tests
+- After implementing pages/flows → suggest **integration-tester** for E2E tests
+- Before merging → suggest **code-reviewer** for a quality review
+- If API contracts are unclear → suggest **architect** to clarify

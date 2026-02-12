@@ -61,3 +61,10 @@ After writing tests:
 - Unclear business flows → note in `business-rules.md`
 - API contract issues discovered → note in `api-contracts.md`
 - Test infrastructure notes → note in `runbook.md`
+
+## Collaboration
+After writing tests, suggest the user invoke the next appropriate agent:
+- After integration tests pass → suggest **code-reviewer** for final review
+- If API contract mismatches found → suggest **architect** to update contracts, then **backend** to fix
+- If E2E tests reveal UI issues → suggest **frontend** to fix
+- After all tests pass → suggest **spec-verifier** to verify spec compliance, then **devops** for deployment

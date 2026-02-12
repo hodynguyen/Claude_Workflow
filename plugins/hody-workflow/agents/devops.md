@@ -53,3 +53,10 @@ After completing work:
 - Deployment procedures → update `runbook.md`
 - Infrastructure decisions → append to `decisions.md`
 - Known operational issues → note in `tech-debt.md`
+
+## Collaboration
+After completing work, suggest the user invoke the next appropriate agent:
+- If infrastructure changes affect the app → suggest **backend** to update configs or env vars
+- If CI pipeline needs new test stages → suggest **unit-tester** or **integration-tester** to verify
+- If deployment reveals architectural concerns → suggest **architect** to review
+- For new environments/services → suggest **researcher** to investigate best practices
