@@ -1000,16 +1000,16 @@ From now on, anyone can install the plugin with:
 
 | # | Task | Status | Description |
 |---|------|--------|-------------|
-| 1 | C#/.NET stack detection | Planned | Detect `.csproj`, `.sln`, `global.json`; frameworks: ASP.NET Core, Blazor; ORM: Entity Framework; test: xUnit, NUnit, MSTest |
-| 2 | Ruby stack detection | Planned | Detect `Gemfile`, `Rakefile`; frameworks: Rails, Sinatra, Hanami; test: RSpec, Minitest |
-| 3 | PHP stack detection | Planned | Detect `composer.json`; frameworks: Laravel, Symfony, Magento; test: PHPUnit, Pest |
-| 4 | Monorepo detection | Planned | Detect `nx.json`, `turbo.json`, `lerna.json`, `pnpm-workspace.yaml`; identify workspace root vs sub-projects |
-| 5 | Monorepo profile format | Planned | Extend `profile.yaml` with `workspaces[]` — each sub-project has its own language, framework, testing |
-| 6 | Auto-update profile | Planned | `/hody-workflow:refresh` command or hook to detect config file changes → re-run `detect_stack.py` |
-| 7 | Knowledge base search | Planned | Skill/command to search across `.hody/knowledge/*.md` — supports keyword search and section filtering |
-| 8 | Agent collaboration | Planned | Delegation pattern — agents can recommend/invoke other agents (e.g., architect → researcher, code-reviewer → unit-tester) |
-| 9 | Unit tests for new stacks | Planned | Tests for C#, Ruby, PHP detection + monorepo detection (extend `test_detect_stack.py`) |
-| 10 | Docs update | Planned | Update README, USAGE_GUIDE with Phase 3 features upon completion |
+| 1 | C#/.NET stack detection | Done | Detect `.csproj`, `.sln`, `global.json`; frameworks: ASP.NET Core, Blazor; ORM: Entity Framework; test: xUnit, NUnit, MSTest |
+| 2 | Ruby stack detection | Done | Detect `Gemfile`, `Rakefile`; frameworks: Rails, Sinatra, Hanami; test: RSpec, Minitest |
+| 3 | PHP stack detection | Done | Detect `composer.json`; frameworks: Laravel, Symfony, Magento; test: PHPUnit, Pest |
+| 4 | Monorepo detection | Done | Detect `nx.json`, `turbo.json`, `lerna.json`, `pnpm-workspace.yaml`; identify workspace root vs sub-projects |
+| 5 | Monorepo profile format | Done | Extend `profile.yaml` with `workspaces[]` — each sub-project has its own language, framework, testing |
+| 6 | Auto-update profile | Done | `/hody-workflow:refresh` command or hook to detect config file changes → re-run `detect_stack.py` |
+| 7 | Knowledge base search | Done | Skill/command to search across `.hody/knowledge/*.md` — supports keyword search and section filtering |
+| 8 | Agent collaboration | Done | Delegation pattern — agents can recommend/invoke other agents (e.g., architect → researcher, code-reviewer → unit-tester) |
+| 9 | Unit tests for new stacks | Done | Tests for C#, Ruby, PHP detection + monorepo detection (extend `test_detect_stack.py`) |
+| 10 | Docs update | Done | Update README, USAGE_GUIDE with Phase 3 features upon completion |
 
 **Technical Details**:
 

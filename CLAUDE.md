@@ -10,7 +10,7 @@ The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
 - A shared knowledge base (`.hody/knowledge/`) that is auto-populated on init and accumulates across sessions
 - 9 specialized agents across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
-- 3 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`
+- 5 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`, `/hody-workflow:refresh`, `/hody-workflow:kb-search`
 - 3 output styles: review-report, test-report, design-doc
 
 ## Architecture
@@ -38,7 +38,7 @@ plugins/hody-workflow/
 ├── hooks/
 │   ├── hooks.json                 # SessionStart hook registration
 │   └── inject_project_context.py  # Reads profile, injects into system message
-└── commands/                      # /hody-workflow:init, /hody-workflow:start-feature, /hody-workflow:status
+└── commands/                      # /hody-workflow:init, start-feature, status, refresh, kb-search
 ```
 
 ## Development Stack
@@ -51,10 +51,10 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Unit tests for detect_stack.py (31 tests)
+# Unit tests for detect_stack.py (47 tests)
 python3 -m unittest test.test_detect_stack -v
 
-# Tests use mock project structures (temp directories simulating React, Go, Python, Rust, Java projects)
+# Tests use mock project structures (temp directories simulating React, Go, Python, Rust, Java, C#, Ruby, PHP, monorepo projects)
 # to verify profile.yaml output correctness
 ```
 
@@ -70,7 +70,7 @@ python3 -m unittest test.test_detect_stack -v
 
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
-- **Phase 3 (Intelligence)**: Planned — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna), auto-update profile, knowledge base search, agent collaboration patterns
+- **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns, 47 tests
 - **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
 
 ## Language Note

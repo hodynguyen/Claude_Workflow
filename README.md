@@ -8,9 +8,10 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 
 ## Features
 
-- **Auto stack detection** — scans `package.json`, `go.mod`, `requirements.txt`, `Dockerfile`, CI configs, etc.
-- **Knowledge base** — 6 persistent markdown files (architecture, decisions, api-contracts, business-rules, tech-debt, runbook) that accumulate project context across sessions
-- **9 specialized agents** across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
+- **Auto stack detection** — scans `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pom.xml`, `.csproj`, `Gemfile`, `composer.json`, monorepo configs, and more
+- **Monorepo support** — detects Nx, Turborepo, Lerna, pnpm workspaces and builds per-workspace profiles
+- **Knowledge base** — 6 persistent markdown files (architecture, decisions, api-contracts, business-rules, tech-debt, runbook) that accumulate project context across sessions, with search support
+- **9 specialized agents** across 4 groups with collaboration: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
 - **Guided workflows** — `/hody-workflow:start-feature` maps your task to the right agent sequence
 - **Output styles** — standardized templates for review reports, test reports, and design docs
 - **SessionStart hook** — automatically injects your project's tech stack into every Claude Code session
@@ -148,6 +149,10 @@ Session starts
 | Python + Django/FastAPI/Flask | `requirements.txt`, `pyproject.toml` |
 | Rust + Actix-web/Rocket/Axum | `Cargo.toml` |
 | Java/Kotlin + Spring Boot/Quarkus/Micronaut | `pom.xml`, `build.gradle` |
+| C#/.NET + ASP.NET Core/Blazor | `.csproj`, `.sln`, `global.json` |
+| Ruby + Rails/Sinatra/Hanami | `Gemfile` |
+| PHP + Laravel/Symfony/Magento | `composer.json` |
+| Monorepo (Nx/Turborepo/Lerna/pnpm) | `nx.json`, `turbo.json`, `lerna.json`, `pnpm-workspace.yaml` |
 | Docker | `Dockerfile`, `docker-compose.yml` |
 | CI/CD | `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile` |
 | Infrastructure | `*.tf` (Terraform), `pulumi/` |
@@ -192,20 +197,20 @@ When a new version is released:
 | 5 | Extended stack detection (Rust, Java/Kotlin, Angular, Svelte) | Done |
 | 6 | Unit tests expanded (31 tests) | Done |
 
-### Phase 3: Intelligence — Planned
+### Phase 3: Intelligence — Complete
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | C#/.NET stack detection (.csproj, .sln, ASP.NET, Entity Framework) | Planned |
-| 2 | Ruby stack detection (Gemfile, Rails, RSpec, Sinatra) | Planned |
-| 3 | PHP stack detection (composer.json, Laravel, Symfony, PHPUnit) | Planned |
-| 4 | Monorepo detection (nx, turborepo, lerna, pnpm-workspaces) | Planned |
-| 5 | Monorepo profile format (workspace-level profile.yaml) | Planned |
-| 6 | Auto-update profile (`/hody-workflow:refresh` command) | Planned |
-| 7 | Knowledge base search/query | Planned |
-| 8 | Agent collaboration patterns (delegation) | Planned |
-| 9 | Unit tests for new stacks + monorepo | Planned |
-| 10 | Docs update | Planned |
+| 1 | C#/.NET stack detection (.csproj, .sln, ASP.NET, Entity Framework) | Done |
+| 2 | Ruby stack detection (Gemfile, Rails, RSpec, Sinatra) | Done |
+| 3 | PHP stack detection (composer.json, Laravel, Symfony, PHPUnit) | Done |
+| 4 | Monorepo detection (nx, turborepo, lerna, pnpm-workspaces) | Done |
+| 5 | Monorepo profile format (workspace-level profile.yaml) | Done |
+| 6 | Auto-update profile (`/hody-workflow:refresh` command) | Done |
+| 7 | Knowledge base search (`/hody-workflow:kb-search` command) | Done |
+| 8 | Agent collaboration patterns (delegation) | Done |
+| 9 | Unit tests for new stacks + monorepo (47 tests) | Done |
+| 10 | Docs update | Done |
 
 ### Phase 4: Ecosystem — Planned
 
@@ -249,9 +254,11 @@ claude-workflow/
 │       └── commands/
 │           ├── init.md               # /hody-workflow:init
 │           ├── start-feature.md      # /hody-workflow:start-feature
-│           └── status.md             # /hody-workflow:status
+│           ├── status.md             # /hody-workflow:status
+│           ├── refresh.md            # /hody-workflow:refresh
+│           └── kb-search.md          # /hody-workflow:kb-search
 ├── test/
-│   └── test_detect_stack.py          # 31 unit tests
+│   └── test_detect_stack.py          # 47 unit tests
 ├── CLAUDE.md                         # Instructions for Claude Code
 └── HODY_WORKFLOW_PROPOSAL.md         # Full design spec (Vietnamese)
 ```
