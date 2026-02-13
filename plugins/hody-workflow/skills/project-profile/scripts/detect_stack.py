@@ -462,9 +462,7 @@ def detect_monorepo(cwd):
     # Resolve workspace globs to actual directories
     import glob as glob_mod
     for pattern in workspace_globs:
-        # Remove trailing /* or /** for directory matching
-        clean_pattern = pattern.rstrip("/*")
-        matched = glob_mod.glob(os.path.join(cwd, clean_pattern))
+        matched = glob_mod.glob(os.path.join(cwd, pattern))
         for match_path in matched:
             if os.path.isdir(match_path):
                 rel_path = os.path.relpath(match_path, cwd)
