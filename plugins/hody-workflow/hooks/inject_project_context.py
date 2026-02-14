@@ -2,10 +2,102 @@
 """
 SessionStart hook: reads .hody/profile.yaml and injects project context
 into the system message so all agents know the current tech stack.
+
+Auto-refresh: if any config file is newer than profile.yaml, re-runs
+detect_stack.py before injecting context.
 """
 import json
+import subprocess
 import sys
 import os
+
+
+# Config files that trigger a profile refresh when modified
+CONFIG_FILES = [
+    "package.json",
+    "go.mod",
+    "requirements.txt",
+    "pyproject.toml",
+    "Pipfile",
+    "setup.py",
+    "Cargo.toml",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "Gemfile",
+    "composer.json",
+    "nx.json",
+    "turbo.json",
+    "lerna.json",
+    "pnpm-workspace.yaml",
+    "global.json",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    ".gitlab-ci.yml",
+    "Jenkinsfile",
+]
+
+
+def is_profile_stale(cwd, profile_path):
+    """Check if any config file is newer than profile.yaml."""
+    try:
+        profile_mtime = os.path.getmtime(profile_path)
+    except OSError:
+        return False
+
+    for fname in CONFIG_FILES:
+        fpath = os.path.join(cwd, fname)
+        try:
+            if os.path.getmtime(fpath) > profile_mtime:
+                return True
+        except OSError:
+            continue
+
+    # Check for .csproj and .sln files (glob pattern)
+    try:
+        for f in os.listdir(cwd):
+            if f.endswith((".csproj", ".sln", ".tf")):
+                if os.path.getmtime(os.path.join(cwd, f)) > profile_mtime:
+                    return True
+    except OSError:
+        pass
+
+    # Check .github/workflows/ directory
+    workflows_dir = os.path.join(cwd, ".github", "workflows")
+    try:
+        if os.path.isdir(workflows_dir):
+            for f in os.listdir(workflows_dir):
+                fpath = os.path.join(workflows_dir, f)
+                if os.path.getmtime(fpath) > profile_mtime:
+                    return True
+    except OSError:
+        pass
+
+    return False
+
+
+def refresh_profile(cwd):
+    """Re-run detect_stack.py to update profile.yaml."""
+    # Derive detect_stack.py path from this script's location
+    hook_dir = os.path.dirname(os.path.abspath(__file__))
+    plugin_root = os.path.dirname(hook_dir)
+    detect_script = os.path.join(
+        plugin_root, "skills", "project-profile", "scripts", "detect_stack.py"
+    )
+
+    if not os.path.isfile(detect_script):
+        return False
+
+    try:
+        subprocess.run(
+            [sys.executable, detect_script, "--cwd", cwd],
+            timeout=15,
+            capture_output=True,
+        )
+        return True
+    except (subprocess.TimeoutExpired, OSError):
+        return False
 
 
 def main():
@@ -17,6 +109,11 @@ def main():
         if not os.path.isfile(profile_path):
             print("{}")
             sys.exit(0)
+
+        # Auto-refresh if config files changed (skip with HODY_SKIP_REFRESH=1)
+        if not os.environ.get("HODY_SKIP_REFRESH"):
+            if is_profile_stale(cwd, profile_path):
+                refresh_profile(cwd)
 
         with open(profile_path, "r") as f:
             profile_content = f.read()
