@@ -28,7 +28,7 @@ SCRIPT_DIR = os.path.join(
 sys.path.insert(0, os.path.abspath(SCRIPT_DIR))
 
 from inject_project_context import is_profile_stale, CONFIG_FILES
-from detect_stack import load_existing_integrations
+from detectors.integrations import load_existing_integrations
 
 
 class TestIsProfileStale(unittest.TestCase):
