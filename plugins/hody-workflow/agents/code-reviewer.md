@@ -59,6 +59,16 @@ After review, if recurring patterns are found:
 - Common issues → append to `tech-debt.md`
 - Architectural concerns → note in `architecture.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your review:
+
+- **GitHub** (`integrations.github: true`): Read PR diffs and existing review comments. Post review comments directly on PRs using `gh pr review` and `gh pr comment`. Check CI status with `gh pr checks`.
+- **Linear** (`integrations.linear: true`): Check linked Linear tickets to verify the implementation matches requirements.
+- **Jira** (`integrations.jira: true`): Check linked Jira tickets for acceptance criteria to verify against.
+
+If no integrations are configured, work normally by reading code directly.
+
 ## Collaboration
 After your review, suggest the user invoke the next appropriate agent:
 - If test coverage gaps found → suggest **unit-tester** or **integration-tester** to add tests

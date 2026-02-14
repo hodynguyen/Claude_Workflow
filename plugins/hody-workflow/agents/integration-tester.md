@@ -62,6 +62,16 @@ After writing tests:
 - API contract issues discovered → note in `api-contracts.md`
 - Test infrastructure notes → note in `runbook.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to improve test coverage:
+
+- **GitHub** (`integrations.github: true`): Read GitHub issues labeled `bug` for regression test cases. Check PR descriptions for test scenarios. Read CI workflow logs for flaky test patterns.
+- **Linear** (`integrations.linear: true`): Read Linear bug tickets for test case ideas and acceptance criteria to verify.
+- **Jira** (`integrations.jira: true`): Read Jira bug reports and acceptance criteria for test scenarios.
+
+If no integrations are configured, work normally using the knowledge base and codebase.
+
 ## Collaboration
 After writing tests, suggest the user invoke the next appropriate agent:
 - After integration tests pass → suggest **code-reviewer** for final review

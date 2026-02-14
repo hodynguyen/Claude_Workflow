@@ -50,6 +50,16 @@ After completing research:
 - Security findings → note in `tech-debt.md`
 - Operational insights → note in `runbook.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enrich your research:
+
+- **GitHub** (`integrations.github: true`): Read GitHub issues, discussions, and PR comments for context on past decisions and community feedback. Use `gh issue list`, `gh issue view`, `gh search issues` to find relevant discussions.
+- **Linear** (`integrations.linear: true`): Read Linear issues and project context to understand current priorities and related work items.
+- **Jira** (`integrations.jira: true`): Read Jira tickets for requirements, acceptance criteria, and related issues.
+
+If no integrations are configured, work normally using web search and documentation.
+
 ## Collaboration
 When your research is complete, suggest the user invoke the next appropriate agent:
 - After researching a technology or approach → suggest **architect** to design the solution

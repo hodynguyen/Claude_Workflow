@@ -54,6 +54,16 @@ After completing work:
 - Infrastructure decisions → append to `decisions.md`
 - Known operational issues → note in `tech-debt.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to streamline DevOps work:
+
+- **GitHub** (`integrations.github: true`): Create PRs with `gh pr create`, manage releases with `gh release create`, check workflow run status with `gh run list`. Read existing CI configs and PR templates for context.
+- **Linear** (`integrations.linear: true`): Update ticket status when deployments complete. Link deployment PRs to Linear issues.
+- **Jira** (`integrations.jira: true`): Update Jira ticket status on deployment. Link release notes to Jira versions.
+
+If no integrations are configured, work normally by editing files directly.
+
 ## Collaboration
 After completing work, suggest the user invoke the next appropriate agent:
 - If infrastructure changes affect the app → suggest **backend** to update configs or env vars

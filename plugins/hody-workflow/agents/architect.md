@@ -51,6 +51,16 @@ After completing work, update the relevant knowledge base files:
 - New API contracts → append to `api-contracts.md`
 - System design changes → update `architecture.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your design work:
+
+- **GitHub** (`integrations.github: true`): Read related issues and PRs for context. Link architecture decisions to GitHub issues when relevant.
+- **Linear** (`integrations.linear: true`): Read Linear tickets to understand feature requirements. Reference ticket IDs in ADRs and design docs.
+- **Jira** (`integrations.jira: true`): Read Jira epics and stories for requirements and acceptance criteria. Link designs to Jira ticket IDs.
+
+If no integrations are configured, work normally using the knowledge base and codebase.
+
 ## Collaboration
 When your design is complete, suggest the user invoke the next appropriate agent:
 - After defining API contracts → suggest **backend** and/or **frontend** to implement
