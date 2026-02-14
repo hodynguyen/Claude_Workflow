@@ -71,6 +71,10 @@ def should_skip(filepath):
     ext = os.path.splitext(filepath)[1].lower()
     if ext in SKIP_EXTENSIONS:
         return True
+    # Check for .min.js, .min.css patterns
+    basename = os.path.basename(filepath).lower()
+    if ".min." in basename:
+        return True
     for skip in SKIP_PATHS:
         if filepath.startswith(skip):
             return True
