@@ -979,16 +979,17 @@ From now on, anyone can install the plugin with:
 
 **Goal**: Plugin works with 3 basic agents
 
-- [x] Repo setup + marketplace.json + plugin.json
-- [x] `detect_stack.py` — auto-detect top 5 popular stacks
-- [x] `inject_project_context.py` — SessionStart hook
-- [x] `hooks.json` — hook registration
-- [x] `/hody-workflow:init` command
-- [x] 3 agents: **architect**, **code-reviewer**, **unit-tester**
-- [x] Knowledge base templates (6 files)
-- [x] SKILL.md for project-profile
-- [x] README.md
-- [x] Basic tests for detect_stack.py (20 tests)
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 1 | Repo setup | Done | `.gitignore`, `marketplace.json`, `plugin.json` |
+| 2 | `detect_stack.py` | Done | Auto-detect top 5 popular stacks (Node.js, Go, Python + DevOps/conventions) |
+| 3 | SessionStart hook | Done | `inject_project_context.py` + `hooks.json` — inject profile into system message |
+| 4 | `/hody-workflow:init` command | Done | Detect stack + create KB + show summary |
+| 5 | 3 MVP agents | Done | **architect**, **code-reviewer**, **unit-tester** |
+| 6 | Knowledge base templates | Done | 6 files: architecture, decisions, api-contracts, business-rules, tech-debt, runbook |
+| 7 | `SKILL.md` for project-profile | Done | Usage docs, detection sources, sample output |
+| 8 | README.md | Done | Repo-level docs with installation, usage, agent reference |
+| 9 | Unit tests | Done | 20 tests for `detect_stack.py` with mock project structures |
 
 **Deliverable**: User can `/hody-workflow:init` → call 3 agents → agents are aware of project stack
 
@@ -996,11 +997,13 @@ From now on, anyone can install the plugin with:
 
 **Goal**: All 9 agents, task-to-agents mapping
 
-- [x] 6 remaining agents: researcher, frontend, backend, spec-verifier, integration-tester, devops
-- [x] `/hody-workflow:start-feature` command (orchestrate workflow)
-- [x] `/hody-workflow:status` command
-- [x] Output styles (review-report, test-report, design-doc)
-- [x] Extended stack detection (Rust, Java/Kotlin, Angular, Svelte — 31 tests)
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 1 | Remaining agents | Done | 6 new agents: researcher, frontend, backend, spec-verifier, integration-tester, devops |
+| 2 | `/hody-workflow:start-feature` command | Done | Classify task type → recommend agent sequence through THINK/BUILD/VERIFY/SHIP |
+| 3 | `/hody-workflow:status` command | Done | Profile summary + KB overview + suggested next steps |
+| 4 | Output styles | Done | 3 templates: review-report, test-report, design-doc |
+| 5 | Extended stack detection | Done | Rust, Java/Kotlin, Angular, Svelte — 31 tests (up from 20) |
 
 **Deliverable**: Full development workflow running end-to-end
 
@@ -1048,14 +1051,37 @@ monorepo:
 
 **Deliverable**: Plugin detects 8+ stacks + monorepo, has knowledge base search, agents know how to delegate to each other
 
-### Phase 4: Ecosystem
+### Phase 4: Ecosystem — Not Started
 
-**Goal**: Integration with external tools
+**Goal**: Integration with external tools, CI pipelines, and team collaboration
 
-- [ ] MCP integration (GitHub, Linear, Jira)
-- [ ] Pre-commit hooks (quality gates)
-- [ ] CI integration (generate test reports)
-- [ ] Team sharing (knowledge base sync)
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| 1 | MCP GitHub integration | Not Started | Add MCP server config for GitHub (gh CLI wrapper). Agents can read issues/PRs, create PRs, post comments. New command `/hody-workflow:connect` to configure MCP servers. |
+| 2 | MCP issue tracker integration | Not Started | Support Linear and Jira via MCP. Agents can read/create issues, link work to tickets. Config stored in `.hody/profile.yaml` under `integrations:` |
+| 3 | Pre-commit quality gate | Not Started | New hook script `quality_gate.py` (PreCommit). Runs code-reviewer checks on staged files — linting, security, naming conventions. Outputs pass/fail with summary. |
+| 4 | CI test report generation | Not Started | New output style `ci-report.md` (JUnit XML / GitHub Actions compatible). Unit-tester and integration-tester agents can output reports that CI pipelines consume. New command `/hody-workflow:ci-report`. |
+| 5 | Team KB sync | Not Started | New command `/hody-workflow:sync` to push/pull `.hody/knowledge/` to a shared location (Git branch, GitHub Gist, or shared repo). Script `kb_sync.py` handles merge logic. |
+| 6 | Agent MCP tool access | Not Started | Update agent prompts to use MCP tools when available — e.g., researcher reads GitHub issues, devops creates PRs, architect links to Linear tickets. Add `## MCP Tools` section to relevant agents. |
+| 7 | Auto-profile refresh hook | Not Started | Enhance SessionStart hook to check config file modification times vs `profile.yaml`. If stale, auto-re-run `detect_stack.py`. |
+| 8 | Unit tests for Phase 4 | Not Started | Tests for `quality_gate.py`, `kb_sync.py`, CI report generation, and auto-refresh logic. |
+| 9 | Docs update | Not Started | Update README, USAGE_GUIDE, CLAUDE.md, PROGRESS.md with Phase 4 features. |
+
+**Technical Details**:
+
+**MCP GitHub integration (Task 1)**: Add `.hody/mcp-servers.json` config file. `/hody-workflow:connect` command prompts user to select integrations (GitHub, Linear, Jira) and generates the MCP config. Agents detect available MCP tools at bootstrap and use them when relevant.
+
+**MCP issue tracker (Task 2)**: Extend `profile.yaml` with `integrations:` section listing configured MCP servers. Agents read this section to know which external tools are available. Linear and Jira support via their respective MCP server packages.
+
+**Pre-commit quality gate (Task 3)**: New script `plugins/hody-workflow/hooks/quality_gate.py` registered as a PreCommit hook in `hooks.json`. Runs a lightweight subset of code-reviewer checks: linting compliance, security patterns (hardcoded secrets, SQL injection), naming conventions. Outputs structured pass/fail JSON. Configurable severity threshold in `profile.yaml`.
+
+**CI test report generation (Task 4)**: New output style template `ci-report.md` that formats test results as JUnit XML or GitHub Actions annotations. `/hody-workflow:ci-report` command wraps test execution and generates the report. Supports both unit-tester and integration-tester output.
+
+**Team KB sync (Task 5)**: Script `plugins/hody-workflow/skills/knowledge-base/scripts/kb_sync.py`. Three sync modes: (a) Git branch — push/pull `.hody/knowledge/` to a dedicated branch, (b) GitHub Gist — sync via gist API, (c) Shared repo — push to a separate shared knowledge repo. Merge strategy: append-only sections merge automatically; conflicting sections flag for manual resolution.
+
+**Auto-profile refresh (Task 7)**: Enhance `inject_project_context.py` to compare modification times of key config files (`package.json`, `go.mod`, `requirements.txt`, etc.) against `.hody/profile.yaml`. If any config file is newer, auto-run `detect_stack.py` before injecting context. Add a `--skip-refresh` flag for performance-sensitive environments.
+
+**Deliverable**: Plugin integrates with GitHub/Linear/Jira via MCP, enforces quality gates pre-commit, generates CI-compatible test reports, and supports team knowledge base synchronization
 
 ---
 

@@ -28,3 +28,11 @@
 - **Decision**: Agents include a `## Collaboration` section that recommends the user invoke another agent. No auto-invocation — Claude Code doesn't support agent-to-agent calls.
 - **Alternatives**: Auto-invoke via tool calls (not supported), chaining via commands (too complex).
 - **Consequences**: User must manually follow agent suggestions. Workflow guidance via `/hody-workflow:start-feature` helps orchestrate the right sequence.
+
+## ADR-004: Phase 4 Ecosystem Strategy
+- **Date**: 2025-02-14
+- **Status**: accepted
+- **Context**: Phase 4 aims to integrate the plugin with external tools (GitHub, issue trackers, CI) and enable team collaboration. Need to decide the integration approach and scope.
+- **Decision**: Use MCP (Model Context Protocol) as the integration layer for external tools. Three pillars: (1) MCP servers for GitHub/Linear/Jira — agents gain read/write access to issues, PRs, and comments; (2) Quality gates — pre-commit hook `quality_gate.py` runs code-reviewer checks on staged files; (3) Team sync — `kb_sync.py` pushes/pulls `.hody/knowledge/` to Git branch, Gist, or shared repo. New commands: `/hody-workflow:connect` (configure MCP), `/hody-workflow:ci-report` (CI-compatible test output), `/hody-workflow:sync` (team KB sync). Auto-profile refresh enhances the SessionStart hook to detect stale profiles.
+- **Alternatives**: Direct API calls instead of MCP (couples plugin to specific APIs), custom webhook system (over-engineered for current scope), no CI integration (limits value for teams).
+- **Consequences**: Depends on MCP server availability for each service. Plugin remains useful without MCP — integrations are additive. New scripts (`quality_gate.py`, `kb_sync.py`) follow the same Python stdlib + PyYAML pattern. Agent prompts gain optional `## MCP Tools` sections that activate only when MCP is configured.

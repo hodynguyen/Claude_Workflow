@@ -214,7 +214,19 @@ When a new version is released:
 
 ### Phase 4: Ecosystem — Planned
 
-See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in the proposal.
+| # | Task | Status |
+|---|------|--------|
+| 1 | MCP GitHub integration (`/hody-workflow:connect`, agents read/create PRs & issues) | Not Started |
+| 2 | MCP issue tracker integration (Linear, Jira via MCP) | Not Started |
+| 3 | Pre-commit quality gate (`quality_gate.py` hook) | Not Started |
+| 4 | CI test report generation (`ci-report` output style, `/hody-workflow:ci-report`) | Not Started |
+| 5 | Team KB sync (`/hody-workflow:sync`, push/pull knowledge base) | Not Started |
+| 6 | Agent MCP tool access (`## MCP Tools` section in agent prompts) | Not Started |
+| 7 | Auto-profile refresh hook (detect stale `profile.yaml` on session start) | Not Started |
+| 8 | Unit tests for Phase 4 | Not Started |
+| 9 | Docs update | Not Started |
+
+See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in the proposal for technical details.
 
 ---
 

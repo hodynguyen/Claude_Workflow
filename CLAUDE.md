@@ -71,7 +71,7 @@ python3 -m unittest test.test_detect_stack -v
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
 - **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns, 47 tests
-- **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira), CI integration, team KB sync
+- **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira via `/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report generation (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook
 
 ## Language Note
 
