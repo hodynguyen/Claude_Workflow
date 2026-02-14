@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Phase 1 (MVP) and Phase 2 (Full Agent Suite) are complete. The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Phase 1 (MVP), Phase 2 (Full Agent Suite), and Phase 3 (Intelligence) are complete. The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)

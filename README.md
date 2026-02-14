@@ -23,7 +23,7 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 ### 1. Add marketplace
 
 ```
-/plugin marketplace add hodynguyen/claude-workflow
+/plugin marketplace add hodynguyen/Claude_Workflow
 ```
 
 ### 2. Install plugin
@@ -221,7 +221,7 @@ See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in
 ## Project Structure
 
 ```
-claude-workflow/
+Claude_Workflow/
 ├── .claude-plugin/
 │   └── marketplace.json              # Marketplace: name "hody"
 ├── plugins/
@@ -260,7 +260,7 @@ claude-workflow/
 ├── test/
 │   └── test_detect_stack.py          # 47 unit tests
 ├── CLAUDE.md                         # Instructions for Claude Code
-└── HODY_WORKFLOW_PROPOSAL.md         # Full design spec (Vietnamese)
+└── HODY_WORKFLOW_PROPOSAL.md         # Full design spec
 ```
 
 ---

@@ -63,7 +63,7 @@ When working with Claude Code on real-world projects:
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │ .hody/profile.yaml                                         │ │
 │  │ Auto-detect: language, framework, testing, CI/CD, infra    │ │
-│  │ Runs once via /hody:init, shared across all agents         │ │
+│  │ Runs once via /hody-workflow:init, shared across all agents         │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                             ↓ feeds into                         │
 │  LAYER 2: KNOWLEDGE BASE (accumulative)                         │
@@ -90,7 +90,8 @@ When working with Claude Code on real-world projects:
 │  SUPPORTING COMPONENTS                                           │
 │  ├── Skills: project-profile (auto-detect), knowledge-base       │
 │  ├── Hooks: inject_project_context (SessionStart)                │
-│  ├── Commands: /hody:init, /hody:start-feature, /hody:status    │
+│  ├── Commands: /hody-workflow:init, start-feature, status,      │
+│  │             refresh, kb-search                               │
 │  └── Output Styles: review-report, test-report, design-doc      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -238,7 +239,6 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │       └── detect_stack.py
 │       │   │
 │       │   └── knowledge-base/
-│       │       ├── SKILL.md
 │       │       └── templates/
 │       │           ├── architecture.md
 │       │           ├── decisions.md
@@ -254,7 +254,9 @@ hody-workflow/                          # Root = GitHub repo
 │       ├── commands/
 │       │   ├── init.md
 │       │   ├── start-feature.md
-│       │   └── status.md
+│       │   ├── status.md
+│       │   ├── refresh.md
+│       │   └── kb-search.md
 │       │
 │       ├── output-styles/
 │       │   ├── review-report.md
@@ -422,20 +424,29 @@ Purpose: every agent knows the project context AS SOON AS THE SESSION STARTS, wi
 
 ### 5.4. Commands
 
-**`/hody:init`** — Initialize hody workflow for the current project:
+**`/hody-workflow:init`** — Initialize hody workflow for the current project:
 1. Run `detect_stack.py` → create `.hody/profile.yaml`
 2. Create `.hody/knowledge/` with template files
-3. Add `.hody/` to `.gitignore` if user prefers (or commit if shared with team)
+3. Populate knowledge base with real project data (architecture, API routes, runbook commands, tech stack ADR)
 
-**`/hody:start-feature`** — Start developing a new feature:
+**`/hody-workflow:start-feature`** — Start developing a new feature:
 1. Ask user to describe the feature
-2. Suggest agents to use (based on task-to-agents mapping)
+2. Classify task type and suggest agents to use (based on task-to-agents mapping)
 3. Begin THINK phase (researcher → architect)
 
-**`/hody:status`** — View current status:
+**`/hody-workflow:status`** — View current status:
 1. Profile summary
-2. Knowledge base overview
+2. Knowledge base overview (filled vs empty sections)
 3. Suggest the next agent to call
+
+**`/hody-workflow:refresh`** — Re-detect project stack:
+1. Re-run `detect_stack.py` to update `.hody/profile.yaml`
+2. Useful when project dependencies or config files change
+
+**`/hody-workflow:kb-search`** — Search the knowledge base:
+1. Search across all `.hody/knowledge/*.md` files
+2. Supports keyword search and section filtering
+3. Returns matching snippets with context
 
 ---
 
@@ -475,7 +486,7 @@ python -m pytest test/test_detect_stack.py
 # Verify profile.yaml output is correct
 
 # Integration test
-# 1. Run /hody:init on a real project
+# 1. Run /hody-workflow:init on a real project
 # 2. Verify profile.yaml is accurate
 # 3. Verify agents can read the profile
 # 4. Verify knowledge base files are created
@@ -493,7 +504,7 @@ cd ~/projects/my-saas-app
 claude
 
 # Initialize hody workflow
-User: /hody:init
+User: /hody-workflow:init
 
 # Claude Code runs:
 # 1. detect_stack.py scans project
@@ -646,7 +657,7 @@ File `.claude-plugin/marketplace.json` at repo root:
 # Step 4: Init hody workflow in any project
 cd ~/projects/my-app
 claude
-/hody:init
+/hody-workflow:init
 ```
 
 ### 8.4. Update Plugin
@@ -663,7 +674,7 @@ When you push new code to GitHub:
 
 ### 8.5. What to commit in the target project
 
-When a user runs `/hody:init` in their project, it creates the `.hody/` directory:
+When a user runs `/hody-workflow:init` in their project, it creates the `.hody/` directory:
 
 ```
 .hody/
@@ -889,7 +900,7 @@ Start with the 3 most important agents:
 
 Each file follows the template from [Section 3.2](#32-agent-prompt-template).
 
-### Step 9: Write /hody:init command
+### Step 9: Write /hody-workflow:init command
 
 Create `plugins/hody-workflow/commands/init.md`:
 ```markdown
@@ -898,7 +909,7 @@ name: init
 description: Initialize hody workflow for the current project
 ---
 
-# /hody:init
+# /hody-workflow:init
 
 Initialize hody workflow:
 
@@ -942,7 +953,7 @@ claude
 /plugin install hody-workflow@hody
 
 # Restart Claude Code, then test
-/hody:init
+/hody-workflow:init
 ```
 
 ### Step 13: Push and publish
@@ -964,37 +975,36 @@ From now on, anyone can install the plugin with:
 
 ## 10. Development Roadmap
 
-### Phase 1: Foundation (MVP)
+### Phase 1: Foundation (MVP) — Complete
 
 **Goal**: Plugin works with 3 basic agents
 
-- [ ] Repo setup + marketplace.json + plugin.json
-- [ ] `detect_stack.py` — auto-detect top 5 popular stacks
-- [ ] `inject_project_context.py` — SessionStart hook
-- [ ] `hooks.json` — hook registration
-- [ ] `/hody:init` command
-- [ ] 3 agents: **architect**, **code-reviewer**, **unit-tester**
-- [ ] Knowledge base templates (6 files)
-- [ ] SKILL.md for project-profile
-- [ ] README.md
-- [ ] Basic tests for detect_stack.py
+- [x] Repo setup + marketplace.json + plugin.json
+- [x] `detect_stack.py` — auto-detect top 5 popular stacks
+- [x] `inject_project_context.py` — SessionStart hook
+- [x] `hooks.json` — hook registration
+- [x] `/hody-workflow:init` command
+- [x] 3 agents: **architect**, **code-reviewer**, **unit-tester**
+- [x] Knowledge base templates (6 files)
+- [x] SKILL.md for project-profile
+- [x] README.md
+- [x] Basic tests for detect_stack.py (20 tests)
 
-**Deliverable**: User can `/hody:init` → call 3 agents → agents are aware of project stack
+**Deliverable**: User can `/hody-workflow:init` → call 3 agents → agents are aware of project stack
 
-### Phase 2: Full Agent Suite
+### Phase 2: Full Agent Suite — Complete
 
 **Goal**: All 9 agents, task-to-agents mapping
 
-- [ ] 6 remaining agents: researcher, frontend, backend, spec-verifier, integration-tester, devops
-- [ ] `/hody:start-feature` command (orchestrate workflow)
-- [ ] `/hody:status` command
-- [ ] Output styles (review-report, test-report, design-doc)
-- [ ] Knowledge base management skill (SKILL.md)
-- [ ] Extended stack detection (top 10)
+- [x] 6 remaining agents: researcher, frontend, backend, spec-verifier, integration-tester, devops
+- [x] `/hody-workflow:start-feature` command (orchestrate workflow)
+- [x] `/hody-workflow:status` command
+- [x] Output styles (review-report, test-report, design-doc)
+- [x] Extended stack detection (Rust, Java/Kotlin, Angular, Svelte — 31 tests)
 
 **Deliverable**: Full development workflow running end-to-end
 
-### Phase 3: Intelligence
+### Phase 3: Intelligence — Complete
 
 **Goal**: Smarter detection, richer knowledge base, agent collaboration
 
@@ -1085,9 +1095,11 @@ monorepo:
 
 | Command | Description |
 |---------|-------------|
-| `/hody:init` | Detect stack, create profile + knowledge base |
-| `/hody:start-feature` | Start feature development workflow |
-| `/hody:status` | View profile + KB summary + next steps |
+| `/hody-workflow:init` | Detect stack, create profile + populate knowledge base |
+| `/hody-workflow:start-feature` | Start feature development workflow |
+| `/hody-workflow:status` | View profile + KB summary + next steps |
+| `/hody-workflow:refresh` | Re-detect stack, update profile.yaml |
+| `/hody-workflow:kb-search` | Search across knowledge base files |
 
 ### Agents
 
