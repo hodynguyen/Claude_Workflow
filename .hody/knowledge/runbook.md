@@ -14,11 +14,16 @@ cd Claude_Workflow
 ## Running Tests
 
 ```bash
-# Run all 47 unit tests
+# Run all 110 unit tests across 17 test files
+python3 -m unittest discover -s test -v
+
+# Run a specific test file
 python3 -m unittest test.test_detect_stack -v
+python3 -m unittest test.test_node_detector -v
 
 # Tests use temp directories simulating various project types
 # (React, Go, Python, Rust, Java, C#, Ruby, PHP, monorepo)
+# Also covers: quality gate, KB sync, auto-refresh, conventions, serializer
 ```
 
 ## Local Plugin Testing
@@ -47,7 +52,7 @@ claude
 ## Pre-push Checklist
 
 - [ ] Version bumped in `plugin.json` (for non-README changes)
-- [ ] Tests pass: `python3 -m unittest test.test_detect_stack -v`
+- [ ] Tests pass: `python3 -m unittest discover -s test -v`
 - [ ] Commit message follows format: `<type>: <description>`
 - [ ] No sensitive files committed (`.env`, credentials, `settings.local.json`)
 

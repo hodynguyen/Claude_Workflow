@@ -16,18 +16,37 @@ claude-workflow/
 │   │   ├── BUILD: frontend, backend
 │   │   ├── VERIFY: code-reviewer, spec-verifier, unit-tester, integration-tester
 │   │   └── SHIP: devops
-│   ├── commands/                       → 5 slash commands
+│   ├── commands/                       → 9 slash commands
 │   │   ├── init.md, start-feature.md, status.md, refresh.md, kb-search.md
-│   ├── output-styles/                  → 3 output templates
-│   │   ├── review-report.md, test-report.md, design-doc.md
+│   │   ├── connect.md, ci-report.md, sync.md, update-kb.md
+│   ├── output-styles/                  → 4 output templates
+│   │   ├── review-report.md, test-report.md, design-doc.md, ci-report.md
 │   ├── skills/
-│   │   ├── project-profile/            → detect_stack.py + SKILL.md
-│   │   └── knowledge-base/templates/   → 6 KB template files
+│   │   ├── project-profile/
+│   │   │   ├── SKILL.md
+│   │   │   └── scripts/
+│   │   │       ├── detect_stack.py     → Thin CLI wrapper (backward-compatible)
+│   │   │       └── detectors/          → Modular detection package (18 modules)
+│   │   │           ├── __init__.py, utils.py, profile.py, serializer.py
+│   │   │           ├── node.py, go.py, python_lang.py, rust.py
+│   │   │           ├── java.py, csharp.py, ruby.py, php.py
+│   │   │           ├── devops.py, monorepo.py, database.py
+│   │   │           ├── conventions.py, integrations.py, directories.py
+│   │   └── knowledge-base/
+│   │       ├── scripts/kb_sync.py      → Team KB sync script
+│   │       └── templates/              → 6 KB template files
 │   └── hooks/
 │       ├── hooks.json                  → SessionStart hook config
-│       └── inject_project_context.py   → Injects profile into system message
-└── test/
-    └── test_detect_stack.py            → 47 unit tests
+│       ├── inject_project_context.py   → Injects profile into system message
+│       └── quality_gate.py             → Pre-commit quality gate
+└── test/                               → 110 unit tests across 17 test files
+    ├── test_detect_stack.py            → Core detection tests
+    ├── test_node_detector.py, test_go_detector.py, test_python_detector.py
+    ├── test_rust_detector.py, test_java_detector.py, test_csharp_detector.py
+    ├── test_ruby_detector.py, test_php_detector.py
+    ├── test_monorepo.py, test_devops.py, test_conventions.py
+    ├── test_directories.py, test_serializer.py
+    ├── test_quality_gate.py, test_kb_sync.py, test_auto_refresh.py
 ```
 
 ## Three-Layer Design

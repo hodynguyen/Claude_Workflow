@@ -12,6 +12,6 @@
 ## No integration tests
 - **Priority**: medium
 - **Area**: testing
-- **Description**: Only unit tests exist (47 tests for detect_stack.py). No integration tests that verify the full init flow (detect → create KB → populate)
+- **Description**: 110 unit tests exist across 17 test files covering individual detectors, quality gate, KB sync, and auto-refresh. However, no integration tests verify the full init flow (detect → create KB → populate)
 - **Impact**: Changes to the init command or KB population logic are not automatically tested
 - **Suggested Fix**: Add integration tests that run `/hody-workflow:init` on mock projects and verify the full output
