@@ -10,7 +10,7 @@ The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
 - A shared knowledge base (`.hody/knowledge/`) that is auto-populated on init and accumulates across sessions
 - 9 specialized agents across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
-- 8 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`, `/hody-workflow:refresh`, `/hody-workflow:kb-search`, `/hody-workflow:connect`, `/hody-workflow:ci-report`, `/hody-workflow:sync`
+- 9 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`, `/hody-workflow:refresh`, `/hody-workflow:kb-search`, `/hody-workflow:connect`, `/hody-workflow:ci-report`, `/hody-workflow:sync`, `/hody-workflow:update-kb`
 - 4 output styles: review-report, test-report, design-doc, ci-report
 
 ## Architecture
@@ -60,7 +60,7 @@ plugins/hody-workflow/
 │   ├── hooks.json                 # SessionStart hook registration
 │   ├── inject_project_context.py  # Reads profile, injects into system message
 │   └── quality_gate.py            # Pre-commit quality gate
-└── commands/                      # 8 commands: init, start-feature, status, refresh, kb-search, connect, ci-report, sync
+└── commands/                      # 9 commands: init, start-feature, status, refresh, kb-search, connect, ci-report, sync, update-kb
 ```
 
 ## Development Stack

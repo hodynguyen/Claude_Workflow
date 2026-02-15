@@ -15,8 +15,8 @@ scripts:
 testing:
   framework: unittest
   test_dir: test/
-  test_count: 47
-  command: "python3 -m unittest test.test_detect_stack -v"
+  test_count: 110
+  command: "python3 -m unittest discover -s test -v"
 
 devops:
   ci: none
