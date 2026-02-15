@@ -55,8 +55,18 @@ After completing research:
 At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enrich your research:
 
 - **GitHub** (`integrations.github: true`): Read GitHub issues, discussions, and PR comments for context on past decisions and community feedback. Use `gh issue list`, `gh issue view`, `gh search issues` to find relevant discussions.
-- **Linear** (`integrations.linear: true`): Read Linear issues and project context to understand current priorities and related work items.
-- **Jira** (`integrations.jira: true`): Read Jira tickets for requirements, acceptance criteria, and related issues.
+- **Linear** (`integrations.linear: true`): Use Linear MCP tools to enrich research with project context:
+  - Search issues by keyword to find prior art and related discussions
+  - Read issue descriptions and comments for detailed requirements
+  - Check project roadmaps and milestones for upcoming priorities
+  - Browse team labels and categories to understand domain organization
+  - Find linked issues to map dependencies and related work
+- **Jira** (`integrations.jira: true`): Use Jira MCP tools to gather requirements and context:
+  - Search with JQL (e.g., `project = X AND type = Story AND status = "In Progress"`) for relevant tickets
+  - Read acceptance criteria and description fields for detailed requirements
+  - Review sprint priorities and backlog ordering for urgency context
+  - Check epic summaries to understand feature groupings
+  - Browse issue links and subtasks to map related work
 
 If no integrations are configured, work normally using web search and documentation.
 

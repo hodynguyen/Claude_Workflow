@@ -64,8 +64,18 @@ After review, if recurring patterns are found:
 At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your review:
 
 - **GitHub** (`integrations.github: true`): Read PR diffs and existing review comments. Post review comments directly on PRs using `gh pr review` and `gh pr comment`. Check CI status with `gh pr checks`.
-- **Linear** (`integrations.linear: true`): Check linked Linear tickets to verify the implementation matches requirements.
-- **Jira** (`integrations.jira: true`): Check linked Jira tickets for acceptance criteria to verify against.
+- **Linear** (`integrations.linear: true`): Use Linear MCP tools to verify implementation against requirements:
+  - Search for the ticket ID referenced in PR/branch name to load requirements
+  - Compare implementation against ticket acceptance criteria and description
+  - Check for related issues that might be affected by the changes
+  - Add review status comments on the Linear ticket
+  - Verify the ticket's priority matches the review urgency
+- **Jira** (`integrations.jira: true`): Use Jira MCP tools to validate code against specifications:
+  - Search for ticket IDs in branch names or commit messages (e.g., `PROJ-456`)
+  - Read acceptance criteria fields to verify each criterion is satisfied
+  - Check linked tickets for related requirements that might be impacted
+  - Transition ticket status (e.g., "In Review" → "Ready for QA") after review
+  - Add review summary as a comment on the Jira ticket
 
 If no integrations are configured, work normally by reading code directly.
 

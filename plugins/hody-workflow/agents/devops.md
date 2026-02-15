@@ -59,8 +59,18 @@ After completing work:
 At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to streamline DevOps work:
 
 - **GitHub** (`integrations.github: true`): Create PRs with `gh pr create`, manage releases with `gh release create`, check workflow run status with `gh run list`. Read existing CI configs and PR templates for context.
-- **Linear** (`integrations.linear: true`): Update ticket status when deployments complete. Link deployment PRs to Linear issues.
-- **Jira** (`integrations.jira: true`): Update Jira ticket status on deployment. Link release notes to Jira versions.
+- **Linear** (`integrations.linear: true`): Use Linear MCP tools to keep project tracking in sync with deployments:
+  - Update issue status to "Deployed" or "Done" after successful deployment
+  - Create incident issues with severity labels when deployment problems occur
+  - Link release PRs to the Linear issues they resolve
+  - Search for issues tagged with deployment-related labels for release notes
+  - Add deployment timestamps and environment info as issue comments
+- **Jira** (`integrations.jira: true`): Use Jira MCP tools to connect deployments to project management:
+  - Search with JQL (e.g., `fixVersion = "v1.2.0" AND status = "Ready for Deploy"`) for release scope
+  - Transition tickets to "Deployed" status after successful rollout
+  - Create incident tickets with priority and component fields for deploy failures
+  - Link Jira version/release to the deployment PR or tag
+  - Add deployment notes (environment, timestamp, rollback steps) as ticket comments
 
 If no integrations are configured, work normally by editing files directly.
 

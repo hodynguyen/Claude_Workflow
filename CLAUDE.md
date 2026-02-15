@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Phase 1 (MVP), Phase 2 (Full Agent Suite), and Phase 3 (Intelligence) are complete. The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. All 4 phases are complete (MVP, Full Agent Suite, Intelligence, Ecosystem). The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
@@ -93,7 +93,7 @@ python3 -m unittest discover -s test -v
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
 - **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns
-- **Phase 4 (Ecosystem)**: In progress — MCP integration (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook — all done. Remaining: MCP issue tracker integration (Linear, Jira), docs update. Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP). 88 tests total.
+- **Phase 4 (Ecosystem)**: Complete — MCP integration with GitHub/Linear/Jira (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook, KB update (`/hody-workflow:update-kb`). Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP). 88 tests total.
 
 ## Language Note
 

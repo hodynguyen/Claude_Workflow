@@ -56,8 +56,18 @@ After completing work, update the relevant knowledge base files:
 At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your design work:
 
 - **GitHub** (`integrations.github: true`): Read related issues and PRs for context. Link architecture decisions to GitHub issues when relevant.
-- **Linear** (`integrations.linear: true`): Read Linear tickets to understand feature requirements. Reference ticket IDs in ADRs and design docs.
-- **Jira** (`integrations.jira: true`): Read Jira epics and stories for requirements and acceptance criteria. Link designs to Jira ticket IDs.
+- **Linear** (`integrations.linear: true`): Use Linear MCP tools to ground designs in real requirements:
+  - Read feature ticket descriptions for detailed requirements and constraints
+  - Create tracking issues for new architectural components or tech debt
+  - Reference Linear issue IDs (e.g., `ENG-123`) in ADRs and design docs
+  - Check project milestones to align designs with delivery timelines
+  - Search for related issues to avoid duplicating existing solutions
+- **Jira** (`integrations.jira: true`): Use Jira MCP tools to connect designs to project management:
+  - Search epics and stories with JQL (e.g., `type = Epic AND project = X`) for requirements
+  - Read acceptance criteria to ensure designs satisfy business needs
+  - Create subtasks under feature stories for architectural work items
+  - Add design doc links as comments on relevant Jira tickets
+  - Check sprint scope to prioritize which designs to complete first
 
 If no integrations are configured, work normally using the knowledge base and codebase.
 

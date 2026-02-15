@@ -67,8 +67,18 @@ After writing tests:
 At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to improve test coverage:
 
 - **GitHub** (`integrations.github: true`): Read GitHub issues labeled `bug` for regression test cases. Check PR descriptions for test scenarios. Read CI workflow logs for flaky test patterns.
-- **Linear** (`integrations.linear: true`): Read Linear bug tickets for test case ideas and acceptance criteria to verify.
-- **Jira** (`integrations.jira: true`): Read Jira bug reports and acceptance criteria for test scenarios.
+- **Linear** (`integrations.linear: true`): Use Linear MCP tools to improve test coverage from real issues:
+  - Read bug ticket descriptions and reproduction steps for regression test cases
+  - Search for issues labeled `bug` or `regression` to find untested scenarios
+  - Check acceptance criteria on feature tickets to generate validation tests
+  - Create issues for test failures with steps to reproduce and expected behavior
+  - Add test coverage notes as comments on resolved bug tickets
+- **Jira** (`integrations.jira: true`): Use Jira MCP tools to drive test scenarios from project data:
+  - Search with JQL (e.g., `type = Bug AND priority >= High AND resolution = Done`) for regression cases
+  - Read acceptance criteria from story tickets to generate integration test assertions
+  - Add test coverage summaries as comments on feature tickets
+  - Create bug tickets for test failures with reproduction steps and environment details
+  - Check sprint scope to prioritize which features need integration tests first
 
 If no integrations are configured, work normally using the knowledge base and codebase.
 

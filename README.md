@@ -14,6 +14,7 @@ Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
 - **9 specialized agents** across 4 groups with collaboration: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
 - **Guided workflows** — `/hody-workflow:start-feature` maps your task to the right agent sequence
 - **Output styles** — standardized templates for review reports, test reports, and design docs
+- **MCP integrations** — connect to GitHub, Linear, and Jira for issue tracking and project management
 - **SessionStart hook** — automatically injects your project's tech stack into every Claude Code session
 
 ---
@@ -212,7 +213,7 @@ When a new version is released:
 | 9 | Unit tests for new stacks + monorepo (47 tests) | Done |
 | 10 | Docs update | Done |
 
-### Phase 4: Ecosystem — In Progress
+### Phase 4: Ecosystem — Complete
 
 | # | Task | Status |
 |---|------|--------|
@@ -223,7 +224,7 @@ When a new version is released:
 | 5 | Agent MCP tool access (`## MCP Tools` section in agent prompts) | Done |
 | 6 | Team KB sync (`/hody-workflow:sync`, push/pull knowledge base) | Done |
 | 7 | Unit tests for Phase 4 (88 total) | Done |
-| 8 | MCP issue tracker integration (Linear, Jira via MCP) | Not Started |
+| 8 | MCP issue tracker integration (Linear, Jira workflows in agent prompts) | Done |
 | 9 | Refactor `detect_stack.py` into modular `detectors/` package (SRP) | Done |
 | 10 | Docs update | Done |
 
@@ -276,7 +277,8 @@ Claude_Workflow/
 │           ├── kb-search.md          # /hody-workflow:kb-search
 │           ├── connect.md            # /hody-workflow:connect
 │           ├── ci-report.md          # /hody-workflow:ci-report
-│           └── sync.md              # /hody-workflow:sync
+│           ├── sync.md              # /hody-workflow:sync
+│           └── update-kb.md         # /hody-workflow:update-kb
 ├── test/                             # 88 unit tests across 13 files
 │   ├── test_detect_stack.py          # Integration test (backward-compat imports)
 │   ├── test_node_detector.py         # Node.js detector tests

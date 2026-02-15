@@ -117,8 +117,16 @@ integrations:
 ```
 
 6. **Verify connection**: For each configured integration, run a quick test:
-   - GitHub: `gh repo view --json name` (verify repo access)
-   - Linear/Jira: check if MCP server responds
+   - **GitHub**: `gh repo view --json name` (verify repo access)
+   - **Linear**: Use the Linear MCP tool to search for recent issues (e.g., list issues updated in the last 7 days). If results are returned, the connection is working.
+   - **Jira**: Use the Jira MCP tool to list available projects. If projects are returned, the connection is working.
+
+   **Troubleshooting** — if verification fails:
+   - Check that API tokens are valid and not expired
+   - Verify permissions: Linear API key needs read/write scopes; Jira token needs project read access
+   - Confirm network connectivity to the service (Linear API, your Atlassian instance)
+   - Restart Claude Code after adding MCP server config (plugins load at startup)
+   - Run `/mcp` to verify the MCP server appears in the active server list
 
 7. **Show summary**: Display the final integration status and which agents benefit:
 

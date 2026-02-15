@@ -1128,7 +1128,7 @@ monorepo:
 
 **Deliverable**: Plugin detects 8+ stacks + monorepo, has knowledge base search, agents know how to delegate to each other
 
-### Phase 4: Ecosystem — In Progress
+### Phase 4: Ecosystem — Complete
 
 **Goal**: Integration with external tools, CI pipelines, and team collaboration
 
@@ -1143,7 +1143,7 @@ monorepo:
 | 7 | Team KB sync | Done | `/hody-workflow:sync` command + `kb_sync.py` script. Push/pull `.hody/knowledge/` to shared location. |
 | 8 | Unit tests for Phase 4 | Done | 88 tests total (up from 47) covering quality gate, KB sync, auto-refresh, integrations. |
 | 9 | Refactor detect_stack.py (SRP) | Done | Modularized into 16-module `detectors/` package. Each detector = 1 file = 1 responsibility. |
-| 10 | MCP issue tracker integration | Not Started | Support Linear and Jira via MCP. Agents can read/create issues, link work to tickets. |
+| 10 | MCP issue tracker integration | Done | Enhanced 5 agent prompts with detailed Linear/Jira workflows (search, read, create, transition). Updated `/connect` verification steps. |
 | 11 | Docs update | Done | Updated README, USAGE_GUIDE, CLAUDE.md, PROGRESS.md, SKILL.md, PROPOSAL.md. |
 
 **Technical Details** (implemented):
@@ -1160,9 +1160,9 @@ monorepo:
 
 **Refactored detect_stack.py**: Modularized from 820-line monolith into 16 SRP modules under `detectors/` package. `detect_stack.py` remains as backward-compatible thin CLI wrapper.
 
-**Remaining**: MCP issue tracker integration (Linear, Jira) — requires their respective MCP server packages.
+**MCP issue tracker integration**: Enhanced 5 agent prompts (researcher, architect, code-reviewer, devops, integration-tester) with detailed Linear/Jira workflows — search, read, create, transition issues. Updated `/connect` command with specific verification steps and troubleshooting checklist.
 
-**Deliverable**: Plugin integrates with GitHub via MCP, enforces quality gates pre-commit, generates CI-compatible test reports, supports team KB sync, and has modular detection architecture
+**Deliverable**: Plugin integrates with GitHub/Linear/Jira via MCP, enforces quality gates pre-commit, generates CI-compatible test reports, supports team KB sync, and has modular detection architecture
 
 ---
 
@@ -1210,6 +1210,7 @@ monorepo:
 | `/hody-workflow:connect` | Configure MCP integrations (GitHub, Linear, Jira) |
 | `/hody-workflow:ci-report` | Generate CI-compatible test reports |
 | `/hody-workflow:sync` | Sync knowledge base with team |
+| `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
 
 ### Agents
 
