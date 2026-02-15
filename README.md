@@ -212,19 +212,20 @@ When a new version is released:
 | 9 | Unit tests for new stacks + monorepo (47 tests) | Done |
 | 10 | Docs update | Done |
 
-### Phase 4: Ecosystem — Planned
+### Phase 4: Ecosystem — In Progress
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | MCP GitHub integration (`/hody-workflow:connect`, agents read/create PRs & issues) | Not Started |
-| 2 | MCP issue tracker integration (Linear, Jira via MCP) | Not Started |
-| 3 | Pre-commit quality gate (`quality_gate.py` hook) | Not Started |
-| 4 | CI test report generation (`ci-report` output style, `/hody-workflow:ci-report`) | Not Started |
-| 5 | Team KB sync (`/hody-workflow:sync`, push/pull knowledge base) | Not Started |
-| 6 | Agent MCP tool access (`## MCP Tools` section in agent prompts) | Not Started |
-| 7 | Auto-profile refresh hook (detect stale `profile.yaml` on session start) | Not Started |
-| 8 | Unit tests for Phase 4 | Not Started |
-| 9 | Docs update | Not Started |
+| 1 | Auto-profile refresh hook (detect stale `profile.yaml` on session start) | Done |
+| 2 | Pre-commit quality gate (`quality_gate.py` hook) | Done |
+| 3 | CI test report generation (`ci-report` output style, `/hody-workflow:ci-report`) | Done |
+| 4 | MCP GitHub integration (`/hody-workflow:connect`, agents read/create PRs & issues) | Done |
+| 5 | Agent MCP tool access (`## MCP Tools` section in agent prompts) | Done |
+| 6 | Team KB sync (`/hody-workflow:sync`, push/pull knowledge base) | Done |
+| 7 | Unit tests for Phase 4 (88 total) | Done |
+| 8 | MCP issue tracker integration (Linear, Jira via MCP) | Not Started |
+| 9 | Refactor `detect_stack.py` into modular `detectors/` package (SRP) | Done |
+| 10 | Docs update | Done |
 
 See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in the proposal for technical details.
 
@@ -253,24 +254,45 @@ Claude_Workflow/
 │       ├── output-styles/            # Standardized output templates
 │       │   ├── review-report.md
 │       │   ├── test-report.md
-│       │   └── design-doc.md
+│       │   ├── design-doc.md
+│       │   └── ci-report.md
 │       ├── skills/
 │       │   ├── project-profile/
 │       │   │   ├── SKILL.md
-│       │   │   └── scripts/detect_stack.py
+│       │   │   └── scripts/
+│       │   │       ├── detect_stack.py       # CLI wrapper (backward-compatible)
+│       │   │       └── detectors/            # Modular detection package (16 modules)
 │       │   └── knowledge-base/
 │       │       └── templates/        # 6 KB template files
 │       ├── hooks/
 │       │   ├── hooks.json            # SessionStart hook config
-│       │   └── inject_project_context.py
+│       │   ├── inject_project_context.py
+│       │   └── quality_gate.py       # Pre-commit quality gate
 │       └── commands/
 │           ├── init.md               # /hody-workflow:init
 │           ├── start-feature.md      # /hody-workflow:start-feature
 │           ├── status.md             # /hody-workflow:status
 │           ├── refresh.md            # /hody-workflow:refresh
-│           └── kb-search.md          # /hody-workflow:kb-search
-├── test/
-│   └── test_detect_stack.py          # 47 unit tests
+│           ├── kb-search.md          # /hody-workflow:kb-search
+│           ├── connect.md            # /hody-workflow:connect
+│           ├── ci-report.md          # /hody-workflow:ci-report
+│           └── sync.md              # /hody-workflow:sync
+├── test/                             # 88 unit tests across 13 files
+│   ├── test_detect_stack.py          # Integration test (backward-compat imports)
+│   ├── test_node_detector.py         # Node.js detector tests
+│   ├── test_go_detector.py           # Go detector tests
+│   ├── test_python_detector.py       # Python detector tests
+│   ├── test_rust_detector.py         # Rust detector tests
+│   ├── test_java_detector.py         # Java detector tests
+│   ├── test_csharp_detector.py       # C# detector tests
+│   ├── test_ruby_detector.py         # Ruby detector tests
+│   ├── test_php_detector.py          # PHP detector tests
+│   ├── test_devops.py                # DevOps + database tests
+│   ├── test_monorepo.py              # Monorepo detection tests
+│   ├── test_serializer.py            # YAML serializer tests
+│   ├── test_auto_refresh.py          # Auto-refresh + integrations tests
+│   ├── test_quality_gate.py          # Quality gate tests
+│   └── test_kb_sync.py              # KB sync tests
 ├── CLAUDE.md                         # Instructions for Claude Code
 └── HODY_WORKFLOW_PROPOSAL.md         # Full design spec
 ```

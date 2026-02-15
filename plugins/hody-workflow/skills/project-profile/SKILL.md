@@ -37,6 +37,10 @@ python3 ${SKILL_ROOT}/scripts/detect_stack.py --cwd <project-root>
 | Python (Django, FastAPI, Flask) | `requirements.txt`, `pyproject.toml`, `Pipfile`, `setup.py` |
 | Rust (Actix-web, Rocket, Axum) | `Cargo.toml` |
 | Java/Kotlin (Spring Boot, Quarkus, Micronaut) | `pom.xml`, `build.gradle`, `build.gradle.kts` |
+| C#/.NET (ASP.NET Core, Blazor, Entity Framework) | `.csproj`, `.sln`, `global.json` |
+| Ruby (Rails, Sinatra, Hanami) | `Gemfile` |
+| PHP (Laravel, Symfony, Magento) | `composer.json` |
+| Monorepo (Nx, Turborepo, Lerna, pnpm) | `nx.json`, `turbo.json`, `lerna.json`, `pnpm-workspace.yaml` |
 | Database | `docker-compose.yml`, `.env`, `.env.example` |
 | CI/CD | `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile` |
 | Infrastructure | `*.tf` (Terraform), `pulumi/` |

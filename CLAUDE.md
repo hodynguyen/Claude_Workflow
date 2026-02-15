@@ -10,8 +10,8 @@ The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
 - A shared knowledge base (`.hody/knowledge/`) that is auto-populated on init and accumulates across sessions
 - 9 specialized agents across 4 groups: THINK (researcher, architect), BUILD (frontend, backend), VERIFY (code-reviewer, spec-verifier, unit-tester, integration-tester), SHIP (devops)
-- 5 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`, `/hody-workflow:refresh`, `/hody-workflow:kb-search`
-- 3 output styles: review-report, test-report, design-doc
+- 8 commands: `/hody-workflow:init`, `/hody-workflow:start-feature`, `/hody-workflow:status`, `/hody-workflow:refresh`, `/hody-workflow:kb-search`, `/hody-workflow:connect`, `/hody-workflow:ci-report`, `/hody-workflow:sync`
+- 4 output styles: review-report, test-report, design-doc, ci-report
 
 ## Architecture
 
@@ -31,14 +31,36 @@ User request → [SessionStart hook] injects profile → Agent loads profile.yam
 plugins/hody-workflow/
 ├── .claude-plugin/plugin.json     # Plugin metadata
 ├── agents/                        # 9 agent prompt files (.md)
-├── output-styles/                 # 3 output templates (review-report, test-report, design-doc)
+├── output-styles/                 # 4 output templates (review-report, test-report, design-doc, ci-report)
 ├── skills/
-│   ├── project-profile/scripts/detect_stack.py
+│   ├── project-profile/
+│   │   ├── scripts/
+│   │   │   ├── detect_stack.py    # Thin CLI wrapper (backward-compatible)
+│   │   │   └── detectors/         # Modular detection package (16 modules)
+│   │   │       ├── __init__.py    # Re-exports public API
+│   │   │       ├── utils.py       # read_json, read_lines
+│   │   │       ├── node.py        # Node.js/TS detection
+│   │   │       ├── go.py          # Go detection
+│   │   │       ├── python_lang.py # Python detection
+│   │   │       ├── rust.py        # Rust detection
+│   │   │       ├── java.py        # Java/Kotlin detection
+│   │   │       ├── csharp.py      # C#/.NET detection
+│   │   │       ├── ruby.py        # Ruby detection
+│   │   │       ├── php.py         # PHP detection
+│   │   │       ├── devops.py      # CI/CD, Docker, infra
+│   │   │       ├── monorepo.py    # Monorepo + workspace profiles
+│   │   │       ├── database.py    # Database detection
+│   │   │       ├── conventions.py # Linter, formatter, PR template
+│   │   │       ├── integrations.py# Preserve integrations across re-detection
+│   │   │       ├── profile.py     # Orchestrator — calls all detectors
+│   │   │       └── serializer.py  # YAML output + CLI entry point
+│   │   └── SKILL.md
 │   └── knowledge-base/templates/  # 6 KB template files
 ├── hooks/
 │   ├── hooks.json                 # SessionStart hook registration
-│   └── inject_project_context.py  # Reads profile, injects into system message
-└── commands/                      # /hody-workflow:init, start-feature, status, refresh, kb-search
+│   ├── inject_project_context.py  # Reads profile, injects into system message
+│   └── quality_gate.py            # Pre-commit quality gate
+└── commands/                      # 8 commands: init, start-feature, status, refresh, kb-search, connect, ci-report, sync
 ```
 
 ## Development Stack
@@ -51,11 +73,11 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Unit tests for detect_stack.py (47 tests)
-python3 -m unittest test.test_detect_stack -v
+# Run all tests (88 tests across 13 test files)
+python3 -m unittest discover -s test -v
 
-# Tests use mock project structures (temp directories simulating React, Go, Python, Rust, Java, C#, Ruby, PHP, monorepo projects)
-# to verify profile.yaml output correctness
+# Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync, auto-refresh
+# Uses mock project structures (temp directories) to verify profile.yaml output correctness
 ```
 
 ## Key Constraints
@@ -70,8 +92,8 @@ python3 -m unittest test.test_detect_stack -v
 
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
-- **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns, 47 tests
-- **Phase 4 (Ecosystem)**: Not started — MCP integration (GitHub, Linear, Jira via `/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report generation (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook
+- **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns
+- **Phase 4 (Ecosystem)**: In progress — MCP integration (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook — all done. Remaining: MCP issue tracker integration (Linear, Jira), docs update. Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP). 88 tests total.
 
 ## Language Note
 
