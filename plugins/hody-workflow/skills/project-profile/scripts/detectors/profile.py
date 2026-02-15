@@ -15,6 +15,7 @@ from detectors.monorepo import detect_monorepo
 from detectors.database import detect_database
 from detectors.conventions import detect_conventions
 from detectors.integrations import load_existing_integrations
+from detectors.directories import detect_directories
 
 
 def build_profile(cwd):
@@ -112,12 +113,17 @@ def build_profile(cwd):
     # Database
     db = detect_database(cwd)
 
+    # Directory detection
+    fe_dir, be_dir = detect_directories(cwd, fe is not None, be is not None)
+
     # Add sections
     if fe:
         if testing:
             fe["testing"] = testing
         if e2e:
             fe["e2e"] = e2e
+        if fe_dir:
+            fe["dir"] = fe_dir
         profile["frontend"] = fe
 
     if be:
@@ -125,6 +131,8 @@ def build_profile(cwd):
             be["database"] = db
         if testing:
             be["testing"] = testing
+        if be_dir:
+            be["dir"] = be_dir
         profile["backend"] = be
 
     # DevOps

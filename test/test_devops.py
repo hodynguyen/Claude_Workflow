@@ -46,6 +46,61 @@ class TestDevOps(unittest.TestCase):
             profile = build_profile(tmpdir)
             self.assertEqual(profile["backend"]["database"], "postgresql")
 
+    # --- Deploy detection ---
+    def test_deploy_vercel(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            open(os.path.join(tmpdir, "vercel.json"), "w").close()
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["deploy"], "vercel")
+
+    def test_deploy_netlify(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            open(os.path.join(tmpdir, "netlify.toml"), "w").close()
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["deploy"], "netlify")
+
+    def test_deploy_fly_io(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            open(os.path.join(tmpdir, "fly.toml"), "w").close()
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["deploy"], "fly-io")
+
+    def test_deploy_heroku(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            open(os.path.join(tmpdir, "Procfile"), "w").close()
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["deploy"], "heroku")
+
+    def test_deploy_kubernetes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, "k8s"))
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["deploy"], "kubernetes")
+
+    # --- Monitoring detection ---
+    def test_monitoring_datadog(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "package.json"), "w") as f:
+                json.dump({"name": "test", "dependencies": {"dd-trace": "^4.0.0"}}, f)
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["monitoring"], "datadog")
+
+    def test_monitoring_sentry(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "package.json"), "w") as f:
+                json.dump({"name": "test", "dependencies": {"@sentry/node": "^7.0.0"}}, f)
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["monitoring"], "sentry")
+
+    def test_monitoring_newrelic(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with open(os.path.join(tmpdir, "requirements.txt"), "w") as f:
+                f.write("newrelic==8.0.0\nfastapi==0.104.0\n")
+            profile = build_profile(tmpdir)
+            self.assertEqual(profile["devops"]["monitoring"], "newrelic")
+
 
 if __name__ == "__main__":
     unittest.main()
