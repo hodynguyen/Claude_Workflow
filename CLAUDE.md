@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. All 4 phases are complete (MVP, Full Agent Suite, Intelligence, Ecosystem). The full specification is in `HODY_WORKFLOW_PROPOSAL.md`.
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. All 4 phases are complete (MVP, Full Agent Suite, Intelligence, Ecosystem). Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
@@ -94,7 +94,4 @@ python3 -m unittest discover -s test -v
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
 - **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns
 - **Phase 4 (Ecosystem)**: Complete — MCP integration with GitHub/Linear/Jira (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook, KB update (`/hody-workflow:update-kb`). Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP). 88 tests total.
-
-## Language Note
-
-Most docs and code are in English. The `USAGE_GUIDE.md` and `PROGRESS.md` are in Vietnamese (internal/personal docs). Code, configs, and agent prompts should be written in English.
+- **Phase 5-6**: Planned — See `docs/ROADMAP.md` for detailed plans.

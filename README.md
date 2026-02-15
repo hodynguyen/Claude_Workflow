@@ -2,7 +2,7 @@
 
 > A project-aware development workflow plugin for Claude Code with specialized AI agents.
 
-Full design spec: [HODY_WORKFLOW_PROPOSAL.md](./HODY_WORKFLOW_PROPOSAL.md)
+**Documentation**: [User Guide](./docs/USER_GUIDE.md) | [Architecture](./docs/ARCHITECTURE.md) | [Proposal](./docs/PROPOSAL.md) | [Roadmap](./docs/ROADMAP.md)
 
 ---
 
@@ -228,7 +228,7 @@ When a new version is released:
 | 9 | Refactor `detect_stack.py` into modular `detectors/` package (SRP) | Done |
 | 10 | Docs update | Done |
 
-See [Development Roadmap](./HODY_WORKFLOW_PROPOSAL.md#10-development-roadmap) in the proposal for technical details.
+See the [Roadmap](./docs/ROADMAP.md) for technical details and future plans.
 
 ---
 
@@ -295,8 +295,13 @@ Claude_Workflow/
 │   ├── test_auto_refresh.py          # Auto-refresh + integrations tests
 │   ├── test_quality_gate.py          # Quality gate tests
 │   └── test_kb_sync.py              # KB sync tests
+├── docs/                             # Documentation
+│   ├── PROPOSAL.md                   # Vision, goals, build guide
+│   ├── ARCHITECTURE.md               # Technical architecture
+│   ├── ROADMAP.md                    # All phases, task tracking
+│   └── USER_GUIDE.md                # Installation, usage, commands
 ├── CLAUDE.md                         # Instructions for Claude Code
-└── HODY_WORKFLOW_PROPOSAL.md         # Full design spec
+└── README.md                         # This file
 ```
 
 ---
