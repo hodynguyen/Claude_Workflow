@@ -1,3 +1,10 @@
+---
+tags: [api, contracts, endpoints]
+created: YYYY-MM-DD
+author_agent: architect
+status: active
+---
+
 # API Contracts
 
 ## [Feature Name]

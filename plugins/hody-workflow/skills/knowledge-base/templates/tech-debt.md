@@ -1,3 +1,10 @@
+---
+tags: [tech-debt, quality]
+created: YYYY-MM-DD
+author_agent: code-reviewer
+status: active
+---
+
 # Tech Debt
 
 ## [Issue Title]

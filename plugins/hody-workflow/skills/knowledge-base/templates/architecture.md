@@ -1,3 +1,10 @@
+---
+tags: [architecture, system-design]
+created: YYYY-MM-DD
+author_agent: architect
+status: active
+---
+
 # Architecture
 
 ## System Overview

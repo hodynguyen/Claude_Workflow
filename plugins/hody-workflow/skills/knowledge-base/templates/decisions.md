@@ -1,3 +1,10 @@
+---
+tags: [decisions, adr]
+created: YYYY-MM-DD
+author_agent: architect
+status: active
+---
+
 # Architecture Decision Records
 
 ## ADR-001: [Title]

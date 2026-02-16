@@ -45,6 +45,18 @@ Adapt research focus based on profile:
 - Link to relevant documentation when possible
 
 ## Knowledge Base Update
+
+When writing new sections to KB files, include YAML frontmatter at the top of each new entry:
+
+```markdown
+---
+tags: [relevant, topic, tags]
+created: YYYY-MM-DD
+author_agent: researcher
+status: active
+---
+```
+
 After completing research:
 - Technical findings → append to `architecture.md` or `decisions.md`
 - Security findings → note in `tech-debt.md`
@@ -69,6 +81,17 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Browse issue links and subtasks to map related work
 
 If no integrations are configured, work normally using web search and documentation.
+
+## Workflow State
+
+If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:
+- Check which phase and agent sequence you are part of
+- Review `agent_log` entries from previous agents for context on work already done
+- After completing your work, update `.hody/state.json`:
+  - Add yourself to the current phase's `completed` list
+  - Clear `active` if you were the active agent
+  - Add an entry to `agent_log` with `completed_at`, `output_summary` (1-2 sentence summary of what you did), and `kb_files_modified` (list of KB files you updated)
+- Suggest the next agent based on the workflow state
 
 ## Collaboration
 When your research is complete, suggest the user invoke the next appropriate agent:

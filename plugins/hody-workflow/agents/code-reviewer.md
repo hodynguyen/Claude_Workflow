@@ -55,6 +55,18 @@ For each finding:
 Severity levels: `critical` (security/data loss), `high` (bugs), `medium` (quality), `low` (style/nit)
 
 ## Knowledge Base Update
+
+When writing new sections to KB files, include YAML frontmatter at the top of each new entry:
+
+```markdown
+---
+tags: [relevant, topic, tags]
+created: YYYY-MM-DD
+author_agent: code-reviewer
+status: active
+---
+```
+
 After review, if recurring patterns are found:
 - Common issues → append to `tech-debt.md`
 - Architectural concerns → note in `architecture.md`
@@ -78,6 +90,17 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Add review summary as a comment on the Jira ticket
 
 If no integrations are configured, work normally by reading code directly.
+
+## Workflow State
+
+If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:
+- Check which phase and agent sequence you are part of
+- Review `agent_log` entries from previous agents for context on work already done
+- After completing your work, update `.hody/state.json`:
+  - Add yourself to the current phase's `completed` list
+  - Clear `active` if you were the active agent
+  - Add an entry to `agent_log` with `completed_at`, `output_summary` (1-2 sentence summary of what you did), and `kb_files_modified` (list of KB files you updated)
+- Suggest the next agent based on the workflow state
 
 ## Collaboration
 After your review, suggest the user invoke the next appropriate agent:

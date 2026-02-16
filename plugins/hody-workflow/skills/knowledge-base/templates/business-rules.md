@@ -1,3 +1,10 @@
+---
+tags: [business-rules, domain]
+created: YYYY-MM-DD
+author_agent: architect
+status: active
+---
+
 # Business Rules
 
 ## [Domain]

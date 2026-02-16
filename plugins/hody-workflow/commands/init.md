@@ -71,7 +71,16 @@ Fill in: Deployment steps, common dev commands, how to run tests, how to start t
 
 Leave these as templates — they cannot be reliably auto-detected from code. Note at the top: "To be filled by the team as business rules are defined" / "To be filled as tech debt is identified during development".
 
-4. **Show summary**: Display the detected stack and populated knowledge base
+4. **Build KB index**: After populating knowledge files, build `.hody/knowledge/_index.json` by scanning all `.md` files in the knowledge directory. For each file, extract:
+   - YAML frontmatter (tags, author_agent, created, status) if present
+   - Section headings (## level)
+   - Line count
+
+   This index enables structured search via `/hody-workflow:kb-search` (tag, agent, status filters).
+
+5. **Check KB file sizes**: If any KB file exceeds 500 lines, archive older sections to `.hody/knowledge/archive/`. Keep the 3 most recent sections in the main file, move the rest to an archive file named `<filename>-archive-<timestamp>.md`.
+
+6. **Show summary**: Display the detected stack and populated knowledge base
 
 ## Output
 

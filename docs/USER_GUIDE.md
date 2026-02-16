@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: Phase 4 complete (v0.3.19) — 9 agents, 9 commands, 4 output styles, 88 tests.
+**Current status**: Phase 5 in progress (v0.3.22) — 9 agents, 10 commands, 4 output styles, 167 tests.
 
 ---
 
@@ -127,13 +127,16 @@ This will:
 my-app/
 └── .hody/
     ├── profile.yaml              ← Tech stack (auto-generated)
+    ├── state.json                ← Workflow state (created by /start-feature)
     └── knowledge/
         ├── architecture.md       ← System overview, components (auto-populated)
         ├── decisions.md          ← ADR-001: tech stack (auto-populated)
         ├── api-contracts.md      ← Detected API endpoints (auto-populated)
         ├── business-rules.md     ← Business logic (template — fill manually)
         ├── tech-debt.md          ← Known issues (template — fill manually)
-        └── runbook.md            ← Dev commands, deployment (auto-populated)
+        ├── runbook.md            ← Dev commands, deployment (auto-populated)
+        ├── _index.json           ← Tag/agent/section index (auto-generated cache)
+        └── archive/              ← Auto-archived old sections (when files > 500 lines)
 ```
 
 > **Tip:** Commit `.hody/` to git — it's team knowledge, not temp files.
@@ -146,9 +149,10 @@ my-app/
 |---------|-------------|
 | `/hody-workflow:init` | Detect stack, create profile + populate knowledge base |
 | `/hody-workflow:start-feature` | Start guided feature development workflow |
-| `/hody-workflow:status` | View profile + KB summary + suggested next steps |
+| `/hody-workflow:status` | View profile + KB summary + workflow progress |
+| `/hody-workflow:resume` | Resume an interrupted workflow from last checkpoint |
 | `/hody-workflow:refresh` | Re-detect stack, update profile.yaml |
-| `/hody-workflow:kb-search` | Search across knowledge base files |
+| `/hody-workflow:kb-search` | Search across knowledge base files (keyword, tag, agent) |
 | `/hody-workflow:connect` | Configure MCP integrations (GitHub, Linear, Jira) |
 | `/hody-workflow:ci-report` | Generate CI-compatible test reports |
 | `/hody-workflow:sync` | Sync knowledge base with team |
@@ -156,7 +160,7 @@ my-app/
 
 ### `/hody-workflow:start-feature`
 
-Describe your feature → plugin classifies it (new-feature, bug-fix, refactor, etc.) → recommends agent workflow:
+Describe your feature → plugin classifies it (new-feature, bug-fix, refactor, etc.) → recommends agent workflow → creates `.hody/state.json` to track progress:
 
 ```
 THINK:  researcher → architect
@@ -165,9 +169,15 @@ VERIFY: unit-tester → integration-tester → code-reviewer → spec-verifier
 SHIP:   devops
 ```
 
+Workflow state persists across sessions. If you close the terminal, use `/hody-workflow:resume` to continue.
+
 ### `/hody-workflow:status`
 
-Shows: stack summary, KB overview (filled vs empty sections), suggested next steps.
+Shows: stack summary, KB overview (filled vs empty sections), active workflow progress, suggested next steps.
+
+### `/hody-workflow:resume`
+
+Resume an interrupted workflow. Shows completed agents with summaries, identifies the next agent, and lets you continue, skip, or abort.
 
 ### `/hody-workflow:refresh`
 
@@ -175,7 +185,11 @@ Re-detect stack when you add/remove dependencies, change framework, or restructu
 
 ### `/hody-workflow:kb-search`
 
-Search keywords and topics across `.hody/knowledge/` files.
+Search across `.hody/knowledge/` files. Supports:
+- **Keyword search**: find any word/phrase across all KB files
+- **Tag search**: `tag:auth` — find files tagged with a topic
+- **Agent search**: `agent:architect` — find entries by author agent
+- **Status filter**: `status:active` or `status:superseded`
 
 ### `/hody-workflow:connect`
 
@@ -266,17 +280,19 @@ Rescan the codebase and update `.hody/knowledge/` files with the latest architec
 ## Complete Feature Workflow
 
 ```
-1. /hody-workflow:init                    ← Run once (detect + populate KB)
+1. /hody-workflow:init                    ← Run once (detect + populate KB + build index)
 2. /hody-workflow:connect                 ← Connect GitHub/Linear (optional, once)
-3. /hody-workflow:start-feature           ← Guided workflow
-4. THINK: researcher → architect          ← Research + design
-5. BUILD: frontend + backend              ← Implement
-6. VERIFY: testers + reviewers            ← Test + review
-7. git commit → quality_gate.py           ← Auto security check before commit
-8. SHIP: devops                           ← Deploy (optional)
-9. /hody-workflow:ci-report               ← Generate test report for CI (optional)
-10. Knowledge base accumulates             ← Context for future sessions
-11. /hody-workflow:sync                   ← Share KB with team (optional)
+3. /hody-workflow:start-feature           ← Guided workflow → creates state.json
+4. THINK: researcher → architect          ← Research + design (state tracked)
+5. BUILD: frontend + backend              ← Implement (state tracked)
+6. --- close terminal, come back later ---
+7. /hody-workflow:resume                  ← Resume from last checkpoint
+8. VERIFY: testers + reviewers            ← Test + review (state tracked)
+9. git commit → quality_gate.py           ← Auto security check before commit
+10. SHIP: devops                          ← Deploy (optional)
+11. /hody-workflow:ci-report              ← Generate test report for CI (optional)
+12. Knowledge base accumulates            ← Context for future sessions
+13. /hody-workflow:sync                   ← Share KB with team (optional)
 ```
 
 ---
@@ -287,7 +303,8 @@ Every time you open a new Claude Code session in a project that has been initial
 - Hook reads `.hody/profile.yaml`
 - **Auto-refresh**: if config files (package.json, go.mod, etc.) are newer than profile.yaml → automatically re-detects
 - Injects project context into the system message
-- All agents automatically know the tech stack — no need to remind them
+- If `.hody/state.json` exists with an active workflow → injects workflow state (feature name, next agent)
+- All agents automatically know the tech stack AND workflow state — no need to remind them
 
 ---
 

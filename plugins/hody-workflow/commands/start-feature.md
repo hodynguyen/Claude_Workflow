@@ -53,7 +53,32 @@ Recommended workflow:
 
 6. **Ask for confirmation**: Let the user adjust the plan (skip agents, reorder, etc.)
 
-7. **Start first phase**: Activate the first agent in the sequence. After each agent completes, prompt the user to continue to the next agent or adjust.
+7. **Create workflow state**: After the user confirms the plan, create `.hody/state.json` to persist the workflow. The file should have this structure:
+
+```json
+{
+  "workflow_id": "feat-<slugified-description>-<YYYYMMDD>",
+  "feature": "<user's feature description>",
+  "type": "<classified type>",
+  "status": "in_progress",
+  "created_at": "<ISO 8601 UTC>",
+  "updated_at": "<ISO 8601 UTC>",
+  "phases": {
+    "<PHASE>": {
+      "agents": ["<agent1>", "<agent2>"],
+      "completed": [],
+      "active": null,
+      "skipped": []
+    }
+  },
+  "phase_order": ["THINK", "BUILD", "VERIFY", "SHIP"],
+  "agent_log": []
+}
+```
+
+Only include phases that have agents assigned. This enables `/hody-workflow:resume` to pick up where the user left off.
+
+8. **Start first phase**: Activate the first agent in the sequence. When starting an agent, set it as `active` in its phase and add an entry to `agent_log` with `started_at`. After each agent completes, update `state.json`: add the agent to `completed`, record `completed_at`, `output_summary`, and `kb_files_modified` in the log. Then prompt the user to continue to the next agent or adjust.
 
 ## Output
 
@@ -69,3 +94,4 @@ After presenting the plan:
 - The SHIP phase (devops) is optional for most feature types
 - Each agent will read the knowledge base, so context accumulates across phases
 - If an agent writes to the knowledge base, subsequent agents benefit automatically
+- Workflow state is persisted in `.hody/state.json` — use `/hody-workflow:resume` to continue an interrupted workflow

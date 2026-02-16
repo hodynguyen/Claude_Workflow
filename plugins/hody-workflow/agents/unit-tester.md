@@ -53,9 +53,32 @@ For each function/module, cover:
 4. **Boundary conditions**: Limits, transitions
 
 ## Knowledge Base Update
+
+When writing new sections to KB files, include YAML frontmatter at the top of each new entry:
+
+```markdown
+---
+tags: [relevant, topic, tags]
+created: YYYY-MM-DD
+author_agent: unit-tester
+status: active
+---
+```
+
 After writing tests, if gaps in specs are found:
 - Missing business rules → note in `business-rules.md`
 - Unclear API behavior → note in `api-contracts.md`
+
+## Workflow State
+
+If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:
+- Check which phase and agent sequence you are part of
+- Review `agent_log` entries from previous agents for context on work already done
+- After completing your work, update `.hody/state.json`:
+  - Add yourself to the current phase's `completed` list
+  - Clear `active` if you were the active agent
+  - Add an entry to `agent_log` with `completed_at`, `output_summary` (1-2 sentence summary of what you did), and `kb_files_modified` (list of KB files you updated)
+- Suggest the next agent based on the workflow state
 
 ## Collaboration
 After writing tests, suggest the user invoke the next appropriate agent:

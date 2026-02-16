@@ -1,3 +1,10 @@
+---
+tags: [runbook, operations, deployment]
+created: YYYY-MM-DD
+author_agent: devops
+status: active
+---
+
 # Runbook
 
 ## Deployment

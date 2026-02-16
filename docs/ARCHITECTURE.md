@@ -27,7 +27,7 @@
 │  │ Runs once via /hody-workflow:init, shared across all agents│ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                             ↓ feeds into                        │
-│  LAYER 2: KNOWLEDGE BASE (accumulative)                         │
+│  LAYER 2: KNOWLEDGE BASE (accumulative, structured)              │
 │  ┌────────────────────────────────────────────────────────────┐ │
 │  │ .hody/knowledge/                                           │ │
 │  │ ├── architecture.md     (system design, diagrams)          │ │
@@ -35,7 +35,9 @@
 │  │ ├── api-contracts.md    (API specs between FE/BE)          │ │
 │  │ ├── business-rules.md   (business logic, constraints)      │ │
 │  │ ├── tech-debt.md        (known issues, TODOs)              │ │
-│  │ └── runbook.md          (deploy, debug, operate)           │ │
+│  │ ├── runbook.md          (deploy, debug, operate)           │ │
+│  │ ├── _index.json         (tag/agent/section index — cache)  │ │
+│  │ └── archive/            (auto-archived old sections)       │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                             ↓ feeds into                        │
 │  LAYER 3: SPECIALIZED AGENTS (9 agents, 4 groups)               │
@@ -50,10 +52,12 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  SUPPORTING COMPONENTS                                          │
 │  ├── Skills: project-profile (auto-detect), knowledge-base      │
+│  ├── State: .hody/state.json (workflow state machine)           │
 │  ├── Hooks: inject_project_context (SessionStart + auto-refresh)│
 │  │          ,quality_gate (PreCommit)                           │
 │  ├── Commands: /hody-workflow:init, start-feature, status,      │
-│  │             refresh, kb-search, connect, ci-report, sync     │
+│  │             refresh, kb-search, connect, ci-report, sync,    │
+│  │             update-kb, resume                                │
 │  └── Output Styles: review-report, test-report, design-doc,     │
 │                      ci-report                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -73,10 +77,12 @@ Loads appropriate agent (from agents/*.md)
 Agent reads:
   1. .hody/profile.yaml (current stack)
   2. .hody/knowledge/* (accumulated context)
+  3. .hody/state.json (workflow state, if active)
      ↓
 Agent performs work
      ↓
-Agent writes new knowledge (if any) to .hody/knowledge/
+Agent writes new knowledge (with frontmatter) to .hody/knowledge/
+Agent updates .hody/state.json (mark self completed, log summary)
      ↓
 Output to user
 ```
@@ -200,6 +206,9 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │   ├── SKILL.md
 │       │   │   └── scripts/
 │       │   │       ├── detect_stack.py       # CLI wrapper (backward-compatible)
+│       │   │       ├── state.py              # Workflow state machine
+│       │   │       ├── kb_index.py           # KB index builder (_index.json)
+│       │   │       ├── kb_archive.py         # KB auto-archival
 │       │   │       └── detectors/            # Modular detection package (16 modules)
 │       │   │           ├── __init__.py       # Re-exports public API
 │       │   │           ├── utils.py          # read_json, read_lines
@@ -244,7 +253,8 @@ hody-workflow/                          # Root = GitHub repo
 │       │   ├── connect.md                    # MCP integrations
 │       │   ├── ci-report.md                  # CI test report
 │       │   ├── sync.md                       # Team KB sync
-│       │   └── update-kb.md                  # KB refresh
+│       │   ├── update-kb.md                  # KB refresh
+│       │   └── resume.md                     # Resume interrupted workflow
 │       │
 │       ├── output-styles/
 │       │   ├── review-report.md
@@ -254,7 +264,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 88 tests across 13 files
+├── test/                               # 167 tests across 15 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py
@@ -269,7 +279,9 @@ hody-workflow/                          # Root = GitHub repo
 │   ├── test_serializer.py
 │   ├── test_auto_refresh.py
 │   ├── test_quality_gate.py
-│   └── test_kb_sync.py
+│   ├── test_kb_sync.py
+│   ├── test_workflow_state.py
+│   └── test_kb_index.py
 │
 ├── docs/                               # Documentation
 │   ├── PROPOSAL.md                     # Vision, goals, build guide
@@ -383,27 +395,32 @@ conventions:
 
 ### 4.2. Knowledge Base Templates
 
-Each file in `.hody/knowledge/` has a standard structure:
+Each file in `.hody/knowledge/` has YAML frontmatter for structured indexing, followed by markdown content:
 
 **`architecture.md`**
 ```markdown
+---
+tags: [architecture, system-design]
+created: 2026-02-16
+author_agent: architect
+status: active
+---
+
 # Architecture
 
 ## System Overview
 <!-- High-level system description -->
-
-## Component Diagram
-<!-- Main components and their relationships -->
-
-## Data Flow
-<!-- Primary data flows -->
-
-## Tech Stack Rationale
-<!-- Why this stack was chosen -->
 ```
 
 **`decisions.md`**
 ```markdown
+---
+tags: [decisions, adr]
+created: 2026-02-16
+author_agent: architect
+status: active
+---
+
 # Architecture Decision Records
 
 ## ADR-001: [Title]
@@ -414,6 +431,15 @@ Each file in `.hody/knowledge/` has a standard structure:
 - **Alternatives**: Other options considered
 - **Consequences**: Impact of the decision
 ```
+
+**Frontmatter fields**:
+- `tags` — list of topic tags for cross-file discovery
+- `created` — date the entry was created
+- `author_agent` — which agent wrote it
+- `status` — `active` or `superseded`
+- `supersedes` — reference to replaced entry (optional)
+
+Frontmatter is optional — existing KB files without frontmatter still work (backward compatible). `_index.json` is a generated cache built by `kb_index.py` — can be rebuilt at any time.
 
 **`api-contracts.md`**
 ```markdown
@@ -446,7 +472,8 @@ Each file in `.hody/knowledge/` has a standard structure:
 **`inject_project_context.py`** — Runs at `SessionStart`:
 1. Checks if config files (package.json, go.mod, etc.) are newer than `.hody/profile.yaml` → auto-refreshes if stale
 2. Reads `.hody/profile.yaml` and injects project context into the system message
-3. Every agent knows the project context AS SOON AS THE SESSION STARTS, without needing to read files
+3. Reads `.hody/state.json` if present — injects active workflow state (feature name, next agent) into the system message
+4. Every agent knows the project context AND workflow state AS SOON AS THE SESSION STARTS
 
 **`quality_gate.py`** — Runs at `PreCommit`:
 1. Scans staged files for security issues (API keys, secrets, hardcoded passwords)
@@ -467,3 +494,4 @@ Each file in `.hody/knowledge/` has a standard structure:
 | `/hody-workflow:ci-report` | Generate CI-compatible test reports |
 | `/hody-workflow:sync` | Sync knowledge base with team |
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
+| `/hody-workflow:resume` | Resume an interrupted workflow from last checkpoint |

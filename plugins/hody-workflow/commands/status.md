@@ -38,7 +38,31 @@ Knowledge Base:
 
 Use ✅ for files with content and ⚠️ for files that are still just the template.
 
-4. **Suggest next steps**: Based on the current state, suggest what the user could do next:
+4. **Check active workflow**: If `.hody/state.json` exists and `status` is `"in_progress"`, display workflow progress:
+
+```
+Active Workflow:
+  Feature: [description]
+  Type: [type]
+  Status: [PHASE] phase — [agent] agent active
+  Progress: ██████░░░░ 3/8 agents (37%)
+
+  THINK:  ✅ researcher → ✅ architect
+  BUILD:  🔄 backend → ⬜ frontend
+  VERIFY: ⬜ unit-tester → ⬜ code-reviewer
+  SHIP:   ⬜ devops
+
+  Next: Complete [current agent], then start [next agent]
+  Resume: /hody-workflow:resume
+```
+
+Use these icons: ✅ completed, 🔄 active, ⏭️ skipped, ⬜ pending.
+
+Calculate progress as `(completed + skipped) / total agents`. Build the progress bar with filled blocks (█) and empty blocks (░), 10 characters wide.
+
+If no active workflow exists, skip this section.
+
+5. **Suggest next steps**: Based on the current state, suggest what the user could do next:
 
 - If knowledge base files are empty → suggest using the architect agent to fill them
 - If no tests exist → suggest using unit-tester or integration-tester

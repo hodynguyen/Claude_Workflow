@@ -136,9 +136,42 @@ def main():
 
         summary = " | ".join(summary_parts) if summary_parts else "profile loaded"
 
-        output = {
-            "systemMessage": f"[Hody Workflow] Project: {summary}. Full profile at .hody/profile.yaml"
-        }
+        system_msg = f"[Hody Workflow] Project: {summary}. Full profile at .hody/profile.yaml"
+
+        # Inject active workflow state if present
+        state_path = os.path.join(cwd, ".hody", "state.json")
+        if os.path.isfile(state_path):
+            try:
+                with open(state_path, "r") as sf:
+                    state = json.load(sf)
+                if state.get("status") == "in_progress":
+                    feature = state.get("feature", "unknown")
+                    # Find next agent
+                    next_info = None
+                    for phase in state.get("phase_order", []):
+                        p = state.get("phases", {}).get(phase, {})
+                        for agent in p.get("agents", []):
+                            if (agent not in p.get("completed", [])
+                                    and agent not in p.get("skipped", [])):
+                                next_info = (phase, agent)
+                                break
+                        if next_info:
+                            break
+                    if next_info:
+                        system_msg += (
+                            f" | Active workflow: '{feature}'"
+                            f" — next: {next_info[1]} ({next_info[0]} phase)"
+                            f". Use /hody-workflow:resume to continue."
+                        )
+                    else:
+                        system_msg += (
+                            f" | Active workflow: '{feature}'"
+                            f" — all agents done, ready to complete."
+                        )
+            except (json.JSONDecodeError, KeyError):
+                pass  # Don't block on corrupt state file
+
+        output = {"systemMessage": system_msg}
         print(json.dumps(output))
         sys.exit(0)
 
