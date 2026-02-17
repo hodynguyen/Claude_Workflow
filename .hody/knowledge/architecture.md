@@ -26,7 +26,7 @@ claude-workflow/
 │   │   │   ├── SKILL.md
 │   │   │   └── scripts/
 │   │   │       ├── detect_stack.py     → Thin CLI wrapper (backward-compatible)
-│   │   │       └── detectors/          → Modular detection package (18 modules)
+│   │   │       └── detectors/          → Modular detection package (20 modules)
 │   │   │           ├── __init__.py, utils.py, profile.py, serializer.py
 │   │   │           ├── node.py, go.py, python_lang.py, rust.py
 │   │   │           ├── java.py, csharp.py, ruby.py, php.py

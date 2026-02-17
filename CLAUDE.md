@@ -49,7 +49,7 @@ plugins/hody-workflow/
 │   │   │   ├── ci_monitor.py      # CI feedback loop (poll, parse, tech-debt)
 │   │   │   ├── team.py            # Team roles & permissions
 │   │   │   ├── health.py          # Project health dashboard
-│   │   │   └── detectors/         # Modular detection package (18 modules)
+│   │   │   └── detectors/         # Modular detection package (20 modules)
 │   │   │       ├── __init__.py    # Re-exports public API
 │   │   │       ├── utils.py       # read_json, read_lines
 │   │   │       ├── node.py        # Node.js/TS detection
@@ -68,7 +68,8 @@ plugins/hody-workflow/
 │   │   │       ├── profile.py     # Orchestrator — calls all detectors
 │   │   │       ├── serializer.py  # YAML output + CLI entry point
 │   │   │       ├── deep_analysis.py # Deep dependency analysis (opt-in)
-│   │   │       └── versions.py    # Semver parsing, conflict detection
+│   │   │       ├── versions.py    # Semver parsing, conflict detection
+│   │   │       └── directories.py # Directory structure analysis
 │   │   └── SKILL.md
 │   └── knowledge-base/templates/  # 6 KB template files
 ├── hooks/
@@ -88,7 +89,7 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Run all tests (309 tests across 22 test files)
+# Run all tests (309 tests across 25 test files)
 python3 -m unittest discover -s test -v
 
 # Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync, auto-refresh, workflow state, KB index/archive, deep analysis, contracts, quality rules, CI monitor, team roles, health dashboard
@@ -109,6 +110,6 @@ python3 -m unittest discover -s test -v
 - **Phase 1 (MVP)**: Complete — detect_stack for top 5 stacks, 3 core agents, knowledge base templates, /hody-workflow:init
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
 - **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns
-- **Phase 4 (Ecosystem)**: Complete — MCP integration with GitHub/Linear/Jira (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook, KB update (`/hody-workflow:update-kb`). Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP).
+- **Phase 4 (Ecosystem)**: Complete — MCP integration with GitHub/Linear/Jira (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook, KB update (`/hody-workflow:update-kb`). Refactored `detect_stack.py` into modular `detectors/` package.
 - **Phase 5 (Deep Intelligence)**: Complete — Workflow state machine (`state.py`, `/hody-workflow:resume`). Structured KB with frontmatter, `_index.json`, auto-archival. Deep stack analysis (`--deep` flag, `deep_analysis.py`, `versions.py`). Agent I/O contracts (`agents/contracts/`, `contracts.py`).
 - **Phase 6 (Enterprise Grade)**: Complete — Configurable quality gate v2 (`quality_rules.py`, `.hody/quality-rules.yaml`). CI feedback loop (`ci_monitor.py`, auto tech-debt entries). Team roles & permissions (`team.py`, `.hody/team.yaml`). Project health dashboard (`health.py`, `/hody-workflow:health`). 309 tests total.

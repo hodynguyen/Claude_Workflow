@@ -12,6 +12,8 @@
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Commands Reference](#commands-reference)
+- [Configurable Quality Gate](#configurable-quality-gate)
+- [Team Roles & Permissions](#team-roles--permissions)
 - [Agents Reference](#agents-reference)
 - [Supported Stacks](#supported-stacks)
 - [Complete Feature Workflow](#complete-feature-workflow)
@@ -29,7 +31,7 @@ GitHub repo (hodynguyen/Claude_Workflow)
     ↓  /plugin marketplace add → git clone
 ~/.claude/plugins/marketplaces/hody/              ← cloned repo
     ↓  /plugin install → copy files
-~/.claude/plugins/cache/hody/hody-workflow/0.3.x/ ← plugin cache (Claude Code reads from here)
+~/.claude/plugins/cache/hody/hody-workflow/0.5.x/ ← plugin cache (Claude Code reads from here)
     ↓  restart Claude Code
 Plugin loaded: hooks, agents, skills, commands
 ```

@@ -57,7 +57,7 @@
 │  │          ,quality_gate (PreCommit)                           │
 │  ├── Commands: /hody-workflow:init, start-feature, status,      │
 │  │             refresh, kb-search, connect, ci-report, sync,    │
-│  │             update-kb, resume                                │
+│  │             update-kb, resume, health                        │
 │  └── Output Styles: review-report, test-report, design-doc,     │
 │                      ci-report                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -222,7 +222,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │       ├── ci_monitor.py         # CI feedback loop
 │       │   │       ├── team.py               # Team roles & permissions
 │       │   │       ├── health.py             # Project health dashboard
-│       │   │       └── detectors/            # Modular detection package (18 modules)
+│       │   │       └── detectors/            # Modular detection package (20 modules)
 │       │   │           ├── __init__.py       # Re-exports public API
 │       │   │           ├── utils.py          # read_json, read_lines
 │       │   │           ├── node.py           # Node.js/TS detection
@@ -241,7 +241,8 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │           ├── profile.py        # Orchestrator
 │       │   │           ├── serializer.py     # YAML output + CLI
 │       │   │           ├── deep_analysis.py  # Deep dependency analysis
-│       │   │           └── versions.py       # Semver parsing
+│       │   │           ├── versions.py       # Semver parsing
+│       │   │           └── directories.py    # Directory structure analysis
 │       │   │
 │       │   └── knowledge-base/
 │       │       ├── scripts/
@@ -280,7 +281,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 309 tests across 22 files
+├── test/                               # 309 tests across 25 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py
@@ -298,6 +299,8 @@ hody-workflow/                          # Root = GitHub repo
 │   ├── test_kb_sync.py
 │   ├── test_workflow_state.py
 │   ├── test_kb_index.py
+│   ├── test_conventions.py
+│   ├── test_directories.py
 │   ├── test_deep_analysis.py
 │   ├── test_contracts.py
 │   ├── test_quality_rules.py
@@ -323,7 +326,7 @@ hody-workflow/                          # Root = GitHub repo
 
 ### 4.1. Project Profile (`detect_stack.py` → `detectors/` package)
 
-Modular Python package (18 modules, SRP) that auto-detects tech stack from project files. `detect_stack.py` is a thin backward-compatible CLI wrapper. Supports `--deep` flag for full dependency tree analysis.
+Modular Python package (20 modules, SRP) that auto-detects tech stack from project files. `detect_stack.py` is a thin backward-compatible CLI wrapper. Supports `--deep` flag for full dependency tree analysis.
 
 ```python
 # Detection rules (each in its own module under detectors/):
@@ -376,6 +379,7 @@ Modular Python package (18 modules, SRP) that auto-detects tech stack from proje
 # serializer.py: YAML output + CLI argument parsing (supports --deep flag)
 # deep_analysis.py: Run npm ls/audit, pip list/audit, go list, cargo metadata
 # versions.py: Semver parsing, major version mismatch, outdated detection
+# directories.py: Directory structure analysis (src/, lib/, test/ detection)
 ```
 
 **Output:** `.hody/profile.yaml`
@@ -499,11 +503,12 @@ Frontmatter is optional — existing KB files without frontmatter still work (ba
 3. Reads `.hody/state.json` if present — injects active workflow state (feature name, next agent) into the system message
 4. Every agent knows the project context AND workflow state AS SOON AS THE SESSION STARTS
 
-**`quality_gate.py`** — Runs at `PreCommit`:
-1. Scans staged files for security issues (API keys, secrets, hardcoded passwords)
-2. Checks file size limits
-3. Skips binary files, node_modules, vendor, lock files; test files skip security checks
-4. Outputs pass/fail with summary
+**`quality_gate.py`** (v2) — Runs at `PreCommit`:
+1. Loads configurable rules from `.hody/quality-rules.yaml` (falls back to built-in defaults)
+2. Checks: secrets (API keys, tokens, custom patterns), security anti-patterns (eval, innerHTML), debug statements (console.log, breakpoint), file size
+3. Severity levels: `error` blocks commit, `warning` allows but prints issues
+4. Skips binary files, node_modules, vendor, lock files; test files skip security checks
+5. Outputs pass/fail with categorized report
 
 ### 4.4. Commands
 
@@ -519,3 +524,4 @@ Frontmatter is optional — existing KB files without frontmatter still work (ba
 | `/hody-workflow:sync` | Sync knowledge base with team |
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
 | `/hody-workflow:resume` | Resume an interrupted workflow from last checkpoint |
+| `/hody-workflow:health` | Project health dashboard with metrics and recommendations |

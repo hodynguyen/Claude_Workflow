@@ -79,15 +79,17 @@ Minimize external dependencies. Prefer Python stdlib. PyYAML is the only require
 ### Testing
 
 ```bash
-# Run all 88 tests across 13 test files
+# Run all 309 tests across 25 test files
 python3 -m unittest discover -s test -v
 
 # Tests cover:
 # - Per-language detectors (node, go, python, rust, java, csharp, ruby, php)
-# - Monorepo detection, DevOps, database, serializer
+# - Monorepo detection, DevOps, database, serializer, conventions, directories
 # - Auto-refresh logic, integrations preservation
 # - Quality gate (security checks, file size, skip rules)
 # - KB sync (validate, sync status)
+# - Workflow state machine, KB index/archive, deep analysis, contracts
+# - Quality rules, CI monitor, team roles, health dashboard
 # - Backward-compatible imports from detect_stack.py
 
 # All tests use mock project structures (temp directories)
