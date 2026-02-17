@@ -218,6 +218,10 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │       ├── kb_index.py           # KB index builder (_index.json)
 │       │   │       ├── kb_archive.py         # KB auto-archival
 │       │   │       ├── contracts.py           # Agent I/O contract validator
+│       │   │       ├── quality_rules.py      # Configurable quality rule engine
+│       │   │       ├── ci_monitor.py         # CI feedback loop
+│       │   │       ├── team.py               # Team roles & permissions
+│       │   │       ├── health.py             # Project health dashboard
 │       │   │       └── detectors/            # Modular detection package (18 modules)
 │       │   │           ├── __init__.py       # Re-exports public API
 │       │   │           ├── utils.py          # read_json, read_lines
@@ -253,7 +257,7 @@ hody-workflow/                          # Root = GitHub repo
 │       ├── hooks/
 │       │   ├── hooks.json
 │       │   ├── inject_project_context.py     # SessionStart + auto-refresh
-│       │   └── quality_gate.py               # Pre-commit quality gate
+│       │   └── quality_gate.py               # Pre-commit quality gate (v2: configurable)
 │       │
 │       ├── commands/
 │       │   ├── init.md
@@ -265,7 +269,8 @@ hody-workflow/                          # Root = GitHub repo
 │       │   ├── ci-report.md                  # CI test report
 │       │   ├── sync.md                       # Team KB sync
 │       │   ├── update-kb.md                  # KB refresh
-│       │   └── resume.md                     # Resume interrupted workflow
+│       │   ├── resume.md                     # Resume interrupted workflow
+│       │   └── health.md                    # Project health dashboard
 │       │
 │       ├── output-styles/
 │       │   ├── review-report.md
@@ -275,7 +280,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 216 tests across 18 files
+├── test/                               # 309 tests across 22 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py
@@ -294,7 +299,11 @@ hody-workflow/                          # Root = GitHub repo
 │   ├── test_workflow_state.py
 │   ├── test_kb_index.py
 │   ├── test_deep_analysis.py
-│   └── test_contracts.py
+│   ├── test_contracts.py
+│   ├── test_quality_rules.py
+│   ├── test_ci_monitor.py
+│   ├── test_team.py
+│   └── test_health.py
 │
 ├── docs/                               # Documentation
 │   ├── PROPOSAL.md                     # Vision, goals, build guide

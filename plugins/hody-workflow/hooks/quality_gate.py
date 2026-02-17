@@ -3,7 +3,7 @@
 PreToolUse hook (Bash matcher): intercepts git commit commands and runs
 lightweight quality checks on staged files.
 
-Checks:
+Checks (configurable via .hody/quality-rules.yaml):
   - Hardcoded secrets (API keys, tokens, passwords in code)
   - Common security patterns (SQL injection, eval usage)
   - Debug leftovers (console.log, print statements in non-test files)
@@ -18,6 +18,25 @@ import re
 import subprocess
 import sys
 
+
+# Try to import configurable rule engine; fall back to hardcoded behavior
+_USE_QUALITY_RULES = False
+try:
+    _scripts_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "skills",
+        "project-profile",
+        "scripts",
+    )
+    sys.path.insert(0, os.path.abspath(_scripts_dir))
+    import quality_rules
+    _USE_QUALITY_RULES = True
+except ImportError:
+    quality_rules = None
+
+
+# --- Legacy hardcoded patterns (fallback when quality_rules unavailable) ---
 
 # Patterns that indicate hardcoded secrets
 SECRET_PATTERNS = [
@@ -82,7 +101,10 @@ def should_skip(filepath):
 
 
 def check_file(cwd, filepath):
-    """Run quality checks on a single staged file. Returns list of issues."""
+    """Run quality checks on a single staged file. Returns list of issues.
+
+    Legacy fallback — used when quality_rules module is not available.
+    """
     issues = []
     full_path = os.path.join(cwd, filepath)
 
@@ -123,12 +145,90 @@ def check_file(cwd, filepath):
     return issues
 
 
+def check_file_v2(cwd, filepath):
+    """Run configurable quality checks on a staged file.
+
+    Returns (errors, warnings) tuple of lists.
+    Uses quality_rules module for configurable checks.
+    """
+    full_path = os.path.join(cwd, filepath)
+
+    # Read file content
+    try:
+        with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+    except (OSError, UnicodeDecodeError):
+        content = ""
+
+    result = quality_rules.run_checks(cwd, filepath, content)
+    return result.get("errors", []), result.get("warnings", [])
+
+
 def run_quality_gate(cwd):
     """Run all quality checks on staged files. Returns (passed, report)."""
     staged = get_staged_files(cwd)
     if not staged:
         return True, "No staged files to check."
 
+    if _USE_QUALITY_RULES:
+        return _run_quality_gate_v2(cwd, staged)
+    else:
+        return _run_quality_gate_legacy(cwd, staged)
+
+
+def _run_quality_gate_v2(cwd, staged):
+    """Configurable quality gate using quality_rules module."""
+    all_errors = {}
+    all_warnings = {}
+
+    for filepath in staged:
+        if should_skip(filepath):
+            continue
+        errors, warnings = check_file_v2(cwd, filepath)
+        if errors:
+            all_errors[filepath] = errors
+        if warnings:
+            all_warnings[filepath] = warnings
+
+    has_errors = bool(all_errors)
+    has_warnings = bool(all_warnings)
+
+    if not has_errors and not has_warnings:
+        return True, f"Quality gate passed. {len(staged)} file(s) checked."
+
+    report_lines = []
+
+    if has_errors:
+        report_lines.append(f"Quality gate: {len(all_errors)} file(s) with errors:\n")
+        for filepath, issues in all_errors.items():
+            report_lines.append(f"  {filepath}:")
+            for issue in issues:
+                line_num = issue.get("line", 0)
+                msg = issue.get("message", "")
+                prefix = f"L{line_num}: " if line_num else ""
+                report_lines.append(f"    - [ERROR] {prefix}{msg}")
+
+    if has_warnings:
+        report_lines.append(f"\nWarnings in {len(all_warnings)} file(s):\n")
+        for filepath, issues in all_warnings.items():
+            report_lines.append(f"  {filepath}:")
+            for issue in issues:
+                line_num = issue.get("line", 0)
+                msg = issue.get("message", "")
+                prefix = f"L{line_num}: " if line_num else ""
+                report_lines.append(f"    - [WARN] {prefix}{msg}")
+
+    report = "\n".join(report_lines)
+
+    if has_errors:
+        return False, report
+    else:
+        # Warnings only — allow commit but include report
+        return True, f"Quality gate passed with warnings. {len(staged)} file(s) checked.\n\n{report}"
+
+
+def _run_quality_gate_legacy(cwd, staged):
+    """Legacy quality gate with hardcoded patterns."""
     all_issues = {}
     for filepath in staged:
         if should_skip(filepath):

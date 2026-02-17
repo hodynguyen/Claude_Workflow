@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: Phase 5 complete (v0.4.0) — 9 agents, 10 commands, 4 output styles, 6 agent contracts, 216 tests.
+**Current status**: Phase 6 complete (v0.5.0) — 9 agents, 11 commands, 4 output styles, 6 agent contracts, 309 tests.
 
 ---
 
@@ -128,6 +128,8 @@ my-app/
 └── .hody/
     ├── profile.yaml              ← Tech stack (auto-generated)
     ├── state.json                ← Workflow state (created by /start-feature)
+    ├── quality-rules.yaml        ← Quality gate config (optional)
+    ├── team.yaml                 ← Team roles & permissions (optional)
     └── knowledge/
         ├── architecture.md       ← System overview, components (auto-populated)
         ├── decisions.md          ← ADR-001: tech stack (auto-populated)
@@ -157,6 +159,7 @@ my-app/
 | `/hody-workflow:ci-report` | Generate CI-compatible test reports |
 | `/hody-workflow:sync` | Sync knowledge base with team |
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
+| `/hody-workflow:health` | Project health dashboard with metrics and recommendations |
 
 ### `/hody-workflow:start-feature`
 
@@ -208,6 +211,83 @@ Push/pull `.hody/knowledge/` to a shared location (git branch, Gist, shared repo
 ### `/hody-workflow:update-kb`
 
 Rescan the codebase and update `.hody/knowledge/` files with the latest architecture, API routes, and runbook commands.
+
+### `/hody-workflow:health`
+
+Show a comprehensive project health dashboard aggregating:
+- **Knowledge Base**: completeness percentage (populated vs template files)
+- **Tech Debt**: open items count by priority (high/medium/low)
+- **Workflows**: started/completed/aborted counts, completion rate, average agents per workflow
+- **Agent Usage**: most-used agents, unused agents flagged
+- **Dependencies**: outdated/vulnerable counts (if deep analysis was run)
+- **Recommendations**: actionable suggestions based on health data
+
+---
+
+## Configurable Quality Gate
+
+The quality gate now supports configurable rules via `.hody/quality-rules.yaml`:
+
+```yaml
+version: "1"
+rules:
+  secrets:
+    enabled: true
+    severity: error
+    custom_patterns:
+      - pattern: "STRIPE_[A-Z]+_KEY"
+        message: "Stripe key detected"
+  security:
+    enabled: true
+    severity: error
+    ignore_paths: ["test/", "*.test.*"]
+  debug_statements:
+    enabled: true
+    severity: warning
+    languages:
+      javascript: ["console.log", "debugger"]
+      python: ["breakpoint()"]
+      go: ["fmt.Println"]
+  file_size:
+    max_kb: 500
+    severity: error
+```
+
+- **Severity levels**: `error` blocks commits, `warning` allows but prints issues
+- **Custom patterns**: add project-specific secret patterns
+- **Per-language debug detection**: based on file extension
+- Falls back to built-in defaults when no config file exists
+
+---
+
+## Team Roles & Permissions
+
+Define team roles in `.hody/team.yaml`:
+
+```yaml
+roles:
+  lead:
+    can_skip_agents: true
+    agents: all
+  developer:
+    agents: [researcher, architect, frontend, backend, unit-tester]
+    requires_review: true
+  reviewer:
+    agents: [code-reviewer, spec-verifier, integration-tester]
+  junior:
+    agents: [frontend, backend, unit-tester]
+    requires_review: true
+members:
+  - github: "hodynguyen"
+    role: lead
+```
+
+| Role | Agents | Can Skip | Review Required |
+|------|--------|----------|-----------------|
+| lead | all 9 | yes | no |
+| developer | 5 | no | yes |
+| reviewer | 3 | no | no |
+| junior | 3 | no | yes + architect approval |
 
 ---
 
@@ -303,11 +383,12 @@ When agents hand off work to each other, contracts in `agents/contracts/` define
 6. --- close terminal, come back later ---
 7. /hody-workflow:resume                  ← Resume from last checkpoint
 8. VERIFY: testers + reviewers            ← Test + review (state tracked)
-9. git commit → quality_gate.py           ← Auto security check before commit
+9. git commit → quality_gate.py           ← Configurable quality check before commit
 10. SHIP: devops                          ← Deploy (optional)
 11. /hody-workflow:ci-report              ← Generate test report for CI (optional)
-12. Knowledge base accumulates            ← Context for future sessions
-13. /hody-workflow:sync                   ← Share KB with team (optional)
+12. /hody-workflow:health                 ← Check project health (optional)
+13. Knowledge base accumulates            ← Context for future sessions
+14. /hody-workflow:sync                   ← Share KB with team (optional)
 ```
 
 ---
@@ -325,11 +406,15 @@ Every time you open a new Claude Code session in a project that has been initial
 
 ## Pre-commit Quality Gate
 
-The `quality_gate.py` hook runs before every commit:
-- Checks for security issues (API keys, secrets, hardcoded passwords)
-- Checks file size limits
+The `quality_gate.py` hook runs before every commit with configurable rules:
+- **Secrets**: API keys, tokens, passwords, AWS keys, private keys + custom patterns
+- **Security**: eval(), innerHTML, document.write(), exec() anti-patterns
+- **Debug statements**: console.log (JS), breakpoint() (Python), fmt.Println (Go)
+- **File size**: configurable limit (default 500KB)
+- **Severity levels**: `error` blocks commit, `warning` allows but reports
 - Skips binary files, node_modules, vendor, lock files
 - Test files are exempt from security checks
+- Configure via `.hody/quality-rules.yaml` (see Configurable Quality Gate section above)
 
 ---
 

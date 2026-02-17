@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.4.0
+**Current version**: v0.5.0
 
 ---
 
@@ -15,7 +15,7 @@
 | 3 | Intelligence | Complete | v0.3.6 |
 | 4 | Ecosystem | Complete | v0.3.19 |
 | 5 | Deep Intelligence | Complete | v0.4.0 |
-| 6 | Enterprise Grade | Planned | v0.5.x |
+| 6 | Enterprise Grade | Complete | v0.5.0 |
 
 ---
 
@@ -336,16 +336,16 @@ validation:
 
 ---
 
-## Phase 6: Enterprise Grade — Planned
+## Phase 6: Enterprise Grade — Complete
 
 **Goal**: Make the plugin viable for teams, CI pipelines, and production environments. Builds on Phase 5 foundations.
 
 | # | Feature | Status | Description |
 |---|---------|--------|-------------|
-| 1 | Quality Gate v2 | Planned | Configurable rules in `.hody/quality-rules.yaml`. Coverage thresholds, dependency audit, severity levels (error/warning). |
-| 2 | CI Feedback Loop | Planned | Poll CI status, parse test failures, auto-create tech-debt entries, suggest fixes. `ci_monitor.py` hook. |
-| 3 | Team Roles & Permissions | Planned | Role definitions in `.hody/team.yaml` (lead, dev, reviewer). Agent access control, workflow enforcement per role. |
-| 4 | Project Health Dashboard | Planned | `/hody-workflow:health` command. Aggregate KB completeness, test coverage trends, tech-debt count, agent usage stats. |
+| 1 | Quality Gate v2 | Done | Configurable rules in `.hody/quality-rules.yaml`. Coverage thresholds, dependency audit, severity levels (error/warning). `quality_rules.py` module. |
+| 2 | CI Feedback Loop | Done | Poll CI status via `gh` CLI, parse test failures (pytest/jest/go), auto-create tech-debt entries, suggest fixes. `ci_monitor.py` module. |
+| 3 | Team Roles & Permissions | Done | Role definitions in `.hody/team.yaml` (lead, developer, reviewer, junior). Agent access control per role. `team.py` module. |
+| 4 | Project Health Dashboard | Done | `/hody-workflow:health` command. Aggregate KB completeness, tech-debt count, workflow stats, agent usage, recommendations. `health.py` module. |
 
 #### Feature 6.1: Quality Gate v2 — Configurable Rule Engine
 
