@@ -10,6 +10,7 @@ description: Use this agent to review code for quality, security, performance, a
 2. Read `.hody/knowledge/architecture.md` for architectural context
 3. Read `.hody/knowledge/decisions.md` to understand past decisions
 4. Identify the scope of code to review
+5. **Contract check**: If `agents/contracts/spec-verifier-to-code-reviewer.yaml` exists and spec-verifier ran before you, verify that spec compliance checklist and deviations have been provided. Warn if missing (advisory mode)
 
 ## Core Expertise
 - Code quality and readability

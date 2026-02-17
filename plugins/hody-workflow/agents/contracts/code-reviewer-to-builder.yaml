@@ -1,0 +1,18 @@
+contract: code-reviewer-to-builder
+version: 1
+description: Validates code review output before builder (backend/frontend) addresses issues.
+required_sections:
+  - name: "Issues Found"
+    format: "categorized list with file:line references"
+  - name: "Severity Classification"
+    format: "blocking vs non-blocking issues"
+  - name: "Suggested Fixes"
+    format: "specific recommendations for each issue"
+optional_sections:
+  - name: "Security Concerns"
+  - name: "Performance Issues"
+  - name: "Code Style Notes"
+validation:
+  - check: "kb_file_modified"
+    file: "tech-debt.md"
+    message: "Code reviewer should log recurring issues in tech-debt.md"

@@ -16,9 +16,10 @@ from detectors.database import detect_database
 from detectors.conventions import detect_conventions
 from detectors.integrations import load_existing_integrations
 from detectors.directories import detect_directories
+from detectors.deep_analysis import run_deep_analysis
 
 
-def build_profile(cwd):
+def build_profile(cwd, deep=False):
     """Build the complete project profile."""
     project_name = os.path.basename(os.path.abspath(cwd))
 
@@ -155,5 +156,11 @@ def build_profile(cwd):
     integrations = load_existing_integrations(cwd)
     if integrations:
         profile["integrations"] = integrations
+
+    # Deep analysis (opt-in)
+    if deep:
+        deep_result = run_deep_analysis(cwd, profile)
+        if deep_result:
+            profile["deep_analysis"] = deep_result
 
     return profile

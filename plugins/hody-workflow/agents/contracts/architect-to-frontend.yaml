@@ -1,0 +1,21 @@
+contract: architect-to-frontend
+version: 1
+description: Validates architect output before frontend implementation begins.
+required_sections:
+  - name: "Component Hierarchy"
+    format: "tree or list of components with parent-child relationships"
+  - name: "State Management"
+    format: "approach (Redux/Zustand/Pinia/etc.) with data flow description"
+  - name: "API Contract for Frontend"
+    format: "endpoints the frontend will consume with request/response shapes"
+optional_sections:
+  - name: "Routing Structure"
+  - name: "UI/UX Wireframes"
+  - name: "Error States"
+validation:
+  - check: "kb_file_modified"
+    file: "architecture.md"
+    message: "Architect should update architecture.md with component design before frontend starts"
+  - check: "kb_file_modified"
+    file: "api-contracts.md"
+    message: "Architect should define API contracts that frontend will consume"

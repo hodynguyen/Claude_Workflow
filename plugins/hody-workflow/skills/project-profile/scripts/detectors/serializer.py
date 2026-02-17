@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--cwd", default=".", help="Project root directory")
     parser.add_argument("--output", default=None, help="Output path (default: <cwd>/.hody/profile.yaml)")
     parser.add_argument("--json", action="store_true", help="Output as JSON instead of YAML")
+    parser.add_argument("--deep", action="store_true", help="Run deep dependency analysis (slower, runs package manager commands)")
     parser.add_argument("--dry-run", action="store_true", help="Print to stdout, don't write file")
     args = parser.parse_args()
 
@@ -50,7 +51,7 @@ def main():
         print(f"Error: {cwd} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    profile = build_profile(cwd)
+    profile = build_profile(cwd, deep=args.deep)
 
     if args.json:
         output = json.dumps(profile, indent=2)

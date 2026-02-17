@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.3.22
+**Current version**: v0.4.0
 
 ---
 
@@ -14,7 +14,7 @@
 | 2 | Full Agent Suite | Complete | v0.2.0 |
 | 3 | Intelligence | Complete | v0.3.6 |
 | 4 | Ecosystem | Complete | v0.3.19 |
-| 5 | Deep Intelligence | In Progress | v0.3.22+ |
+| 5 | Deep Intelligence | Complete | v0.4.0 |
 | 6 | Enterprise Grade | Planned | v0.5.x |
 
 ---
@@ -149,8 +149,8 @@ Five structural limitations prevent the plugin from scaling beyond individual-de
 |---|---------|--------|-------------|
 | 1 | Workflow State Machine | Done | `.hody/state.json` with phases, active agent, timestamps, audit log. New `state.py` module. `/hody-workflow:resume` command. |
 | 2 | Structured Knowledge Base | Done | YAML frontmatter (tags, date, author-agent) on KB entries. `_index.json` for section-level indexing. Auto-archival for large KB files. |
-| 3 | Deep Stack Analysis | Planned | Parse actual dependency trees (`npm ls --json`, `pip show`, `cargo tree`). Version conflict detection, security audit. Opt-in via `--deep` flag. |
-| 4 | Agent Input/Output Contracts | Planned | Typed handoff schemas in `agents/contracts/*.yaml`. Validation at agent bootstrap. Advisory by default, strict mode optional. |
+| 3 | Deep Stack Analysis | Done | Parse actual dependency trees (`npm ls --json`, `pip list`, `go list`, `cargo metadata`). Version conflict detection, security audit. Opt-in via `--deep` flag. |
+| 4 | Agent Input/Output Contracts | Done | Typed handoff schemas in `agents/contracts/*.yaml`. Validation at agent bootstrap. Advisory by default. 6 contracts defined. |
 
 #### Feature 5.1: Workflow State Machine
 

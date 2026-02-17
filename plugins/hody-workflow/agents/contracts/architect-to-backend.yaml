@@ -1,0 +1,21 @@
+contract: architect-to-backend
+version: 1
+description: Validates architect output before backend implementation begins.
+required_sections:
+  - name: "API Endpoints"
+    format: "table or list with method, path, request/response types"
+  - name: "Data Models"
+    format: "entity definitions with fields and types"
+  - name: "Architecture Decision"
+    format: "chosen pattern with rationale"
+optional_sections:
+  - name: "Sequence Diagrams"
+  - name: "Error Handling Strategy"
+  - name: "Authentication Flow"
+validation:
+  - check: "kb_file_modified"
+    file: "architecture.md"
+    message: "Architect should update architecture.md before handing off to backend"
+  - check: "kb_file_modified"
+    file: "api-contracts.md"
+    message: "Architect should define API contracts before backend implementation"

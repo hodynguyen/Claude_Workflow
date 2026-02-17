@@ -1,0 +1,17 @@
+contract: backend-to-unit-tester
+version: 1
+description: Validates backend output before unit testing begins.
+required_sections:
+  - name: "Implementation Files"
+    format: "list of files created or modified with brief description"
+  - name: "Test Strategy"
+    format: "suggested test approach, key functions to test"
+  - name: "Edge Cases"
+    format: "list of edge cases and boundary conditions to cover"
+optional_sections:
+  - name: "Mocking Requirements"
+  - name: "Database Fixtures"
+validation:
+  - check: "kb_file_modified"
+    file: "api-contracts.md"
+    message: "Backend should confirm implemented endpoints in api-contracts.md"

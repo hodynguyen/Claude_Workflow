@@ -10,6 +10,7 @@ description: Use this agent to implement frontend features, UI components, pages
 2. Read `.hody/knowledge/architecture.md` for component structure and design patterns
 3. Read `.hody/knowledge/api-contracts.md` for API endpoints the frontend consumes
 4. Examine existing components to match project patterns and conventions
+5. **Contract check**: If `agents/contracts/architect-to-frontend.yaml` exists, verify that the architect has provided component hierarchy, state management approach, and API contracts for frontend. Warn if missing (advisory mode)
 
 ## Core Expertise
 - UI component design and implementation

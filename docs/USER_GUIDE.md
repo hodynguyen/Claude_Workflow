@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: Phase 5 in progress (v0.3.22) — 9 agents, 10 commands, 4 output styles, 167 tests.
+**Current status**: Phase 5 complete (v0.4.0) — 9 agents, 10 commands, 4 output styles, 6 agent contracts, 216 tests.
 
 ---
 
@@ -183,6 +183,8 @@ Resume an interrupted workflow. Shows completed agents with summaries, identifie
 
 Re-detect stack when you add/remove dependencies, change framework, or restructure your project.
 
+Add `--deep` to run full dependency analysis (dependency counts, outdated packages, security vulnerabilities). Requires the relevant package manager CLI (npm, pip, go, cargo).
+
 ### `/hody-workflow:kb-search`
 
 Search across `.hody/knowledge/` files. Supports:
@@ -224,6 +226,19 @@ Rescan the codebase and update `.hody/knowledge/` files with the latest architec
 | VERIFY | unit-tester | Unit tests for functions and components |
 | VERIFY | integration-tester | API tests, E2E tests, business flow tests |
 | SHIP | devops | CI/CD, Docker, infrastructure, deployment |
+
+### Agent Contracts
+
+When agents hand off work to each other, contracts in `agents/contracts/` define what the receiving agent should expect. At bootstrap, agents check if the previous agent provided the required sections in the KB. This is advisory — agents warn but don't block if something is missing.
+
+| Contract | What it checks |
+|----------|---------------|
+| architect → backend | API endpoints, data models, architecture.md updated |
+| architect → frontend | Component hierarchy, state management, API contracts |
+| backend → unit-tester | Implementation files listed, test strategy, edge cases |
+| code-reviewer → builder | Issues categorized, file:line references, suggested fixes |
+| unit-tester → integration-tester | Coverage summary, integration boundaries |
+| spec-verifier → code-reviewer | Spec compliance checklist, deviations flagged |
 
 ### Calling agents directly
 

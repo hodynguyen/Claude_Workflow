@@ -32,7 +32,8 @@ User request → [SessionStart hook] injects profile → Agent loads profile.yam
 ```
 plugins/hody-workflow/
 ├── .claude-plugin/plugin.json     # Plugin metadata
-├── agents/                        # 9 agent prompt files (.md)
+├── agents/                        # 9 agent prompt files (.md) + contracts/
+│   └── contracts/                 # 6 handoff contract YAML files
 ├── output-styles/                 # 4 output templates (review-report, test-report, design-doc, ci-report)
 ├── skills/
 │   ├── project-profile/
@@ -41,7 +42,8 @@ plugins/hody-workflow/
 │   │   │   ├── state.py           # Workflow state machine (.hody/state.json)
 │   │   │   ├── kb_index.py        # KB index builder (_index.json)
 │   │   │   ├── kb_archive.py      # KB auto-archival (archive/ dir)
-│   │   │   └── detectors/         # Modular detection package (16 modules)
+│   │   │   ├── contracts.py       # Agent I/O contract validator
+│   │   │   └── detectors/         # Modular detection package (18 modules)
 │   │   │       ├── __init__.py    # Re-exports public API
 │   │   │       ├── utils.py       # read_json, read_lines
 │   │   │       ├── node.py        # Node.js/TS detection
@@ -58,7 +60,9 @@ plugins/hody-workflow/
 │   │   │       ├── conventions.py # Linter, formatter, PR template
 │   │   │       ├── integrations.py# Preserve integrations across re-detection
 │   │   │       ├── profile.py     # Orchestrator — calls all detectors
-│   │   │       └── serializer.py  # YAML output + CLI entry point
+│   │   │       ├── serializer.py  # YAML output + CLI entry point
+│   │   │       ├── deep_analysis.py # Deep dependency analysis (opt-in)
+│   │   │       └── versions.py    # Semver parsing, conflict detection
 │   │   └── SKILL.md
 │   └── knowledge-base/templates/  # 6 KB template files
 ├── hooks/
@@ -78,10 +82,10 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Run all tests (167 tests across 15 test files)
+# Run all tests (216 tests across 18 test files)
 python3 -m unittest discover -s test -v
 
-# Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync, auto-refresh, workflow state, KB index/archive
+# Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync, auto-refresh, workflow state, KB index/archive, deep analysis, contracts
 # Uses mock project structures (temp directories) to verify profile.yaml output correctness
 ```
 
@@ -91,7 +95,8 @@ python3 -m unittest discover -s test -v
 - Hook scripts must complete within 60s timeout
 - No persistent state except filesystem (`.hody/` directory)
 - Plugins only load at Claude Code startup — changes require restart
-- `detect_stack.py` should only scan config files, not the full codebase (for speed)
+- `detect_stack.py` should only scan config files, not the full codebase (for speed). Use `--deep` for actual package manager analysis
+- Agent contracts are advisory by default — produce warnings, not errors
 
 ## Development Roadmap
 
@@ -99,5 +104,5 @@ python3 -m unittest discover -s test -v
 - **Phase 2 (Full Agent Suite)**: Complete — 9 agents, 3 commands, 3 output styles, extended stack detection (Rust, Java/Kotlin, Angular, Svelte), KB auto-populate on init
 - **Phase 3 (Intelligence)**: Complete — C#/Ruby/PHP stack detection, monorepo support (nx/turborepo/lerna/pnpm), auto-update profile (/refresh), KB search (/kb-search), agent collaboration patterns
 - **Phase 4 (Ecosystem)**: Complete — MCP integration with GitHub/Linear/Jira (`/hody-workflow:connect`), pre-commit quality gate (`quality_gate.py`), CI test report (`/hody-workflow:ci-report`), team KB sync (`/hody-workflow:sync`), agent MCP tool access, auto-profile refresh hook, KB update (`/hody-workflow:update-kb`). Refactored `detect_stack.py` into modular `detectors/` package (16 modules, SRP).
-- **Phase 5 (Deep Intelligence)**: In progress — Workflow state machine (`state.py`, `.hody/state.json`, `/hody-workflow:resume`). Structured KB with YAML frontmatter, `_index.json` indexing, auto-archival (`kb_index.py`, `kb_archive.py`). 167 tests total.
+- **Phase 5 (Deep Intelligence)**: Complete — Workflow state machine (`state.py`, `/hody-workflow:resume`). Structured KB with frontmatter, `_index.json`, auto-archival. Deep stack analysis (`--deep` flag, `deep_analysis.py`, `versions.py`). Agent I/O contracts (`agents/contracts/`, `contracts.py`). 216 tests total.
 - **Phase 6**: Planned — See `docs/ROADMAP.md` for detailed plans.

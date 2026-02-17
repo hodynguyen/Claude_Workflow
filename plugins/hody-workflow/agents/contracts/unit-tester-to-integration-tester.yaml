@@ -1,0 +1,17 @@
+contract: unit-tester-to-integration-tester
+version: 1
+description: Validates unit tester output before integration testing begins.
+required_sections:
+  - name: "Unit Test Coverage"
+    format: "summary of what was tested, number of tests, coverage %"
+  - name: "Integration Boundaries"
+    format: "list of component boundaries that need integration testing"
+  - name: "Untested Paths"
+    format: "flows or interactions that unit tests cannot cover"
+optional_sections:
+  - name: "Test Fixtures"
+  - name: "Mock Dependencies"
+validation:
+  - check: "kb_file_modified"
+    file: "api-contracts.md"
+    message: "Unit tester should note any API contract gaps discovered during testing"

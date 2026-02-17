@@ -138,7 +138,14 @@ description: When this agent should be activated (for Claude Code matching)
 - [Standard output format]
 
 ## Knowledge Base Update
+- Include YAML frontmatter (tags, created, author_agent, status)
 - After completion, write new knowledge to `.hody/knowledge/[file]`
+
+## Workflow State
+- Read/update `.hody/state.json` if active workflow exists
+
+## Collaboration
+- Suggest next agent based on workflow state
 ```
 
 ### 2.3. Task-to-Agents Mapping
@@ -190,7 +197,8 @@ hody-workflow/                          # Root = GitHub repo
 │       ├── .claude-plugin/
 │       │   └── plugin.json             # Plugin metadata
 │       │
-│       ├── agents/                     # 9 specialized agents
+│       ├── agents/                     # 9 specialized agents + contracts
+│       │   ├── contracts/              # 6 agent handoff contracts (.yaml)
 │       │   ├── researcher.md
 │       │   ├── architect.md
 │       │   ├── frontend.md
@@ -209,7 +217,8 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │       ├── state.py              # Workflow state machine
 │       │   │       ├── kb_index.py           # KB index builder (_index.json)
 │       │   │       ├── kb_archive.py         # KB auto-archival
-│       │   │       └── detectors/            # Modular detection package (16 modules)
+│       │   │       ├── contracts.py           # Agent I/O contract validator
+│       │   │       └── detectors/            # Modular detection package (18 modules)
 │       │   │           ├── __init__.py       # Re-exports public API
 │       │   │           ├── utils.py          # read_json, read_lines
 │       │   │           ├── node.py           # Node.js/TS detection
@@ -226,7 +235,9 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │           ├── conventions.py    # Linter, formatter, PR template
 │       │   │           ├── integrations.py   # Preserve integrations
 │       │   │           ├── profile.py        # Orchestrator
-│       │   │           └── serializer.py     # YAML output + CLI
+│       │   │           ├── serializer.py     # YAML output + CLI
+│       │   │           ├── deep_analysis.py  # Deep dependency analysis
+│       │   │           └── versions.py       # Semver parsing
 │       │   │
 │       │   └── knowledge-base/
 │       │       ├── scripts/
@@ -264,7 +275,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 167 tests across 15 files
+├── test/                               # 216 tests across 18 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py
@@ -281,7 +292,9 @@ hody-workflow/                          # Root = GitHub repo
 │   ├── test_quality_gate.py
 │   ├── test_kb_sync.py
 │   ├── test_workflow_state.py
-│   └── test_kb_index.py
+│   ├── test_kb_index.py
+│   ├── test_deep_analysis.py
+│   └── test_contracts.py
 │
 ├── docs/                               # Documentation
 │   ├── PROPOSAL.md                     # Vision, goals, build guide
@@ -301,7 +314,7 @@ hody-workflow/                          # Root = GitHub repo
 
 ### 4.1. Project Profile (`detect_stack.py` → `detectors/` package)
 
-Modular Python package (16 modules, SRP) that auto-detects tech stack from project files. `detect_stack.py` is a thin backward-compatible CLI wrapper.
+Modular Python package (18 modules, SRP) that auto-detects tech stack from project files. `detect_stack.py` is a thin backward-compatible CLI wrapper. Supports `--deep` flag for full dependency tree analysis.
 
 ```python
 # Detection rules (each in its own module under detectors/):
@@ -351,7 +364,9 @@ Modular Python package (16 modules, SRP) that auto-detects tech stack from proje
 # conventions.py: .github/PULL_REQUEST_TEMPLATE.md
 # integrations.py: Preserves user-configured integrations across re-detection
 # profile.py: Orchestrator — calls all detectors, builds final profile dict
-# serializer.py: YAML output + CLI argument parsing
+# serializer.py: YAML output + CLI argument parsing (supports --deep flag)
+# deep_analysis.py: Run npm ls/audit, pip list/audit, go list, cargo metadata
+# versions.py: Semver parsing, major version mismatch, outdated detection
 ```
 
 **Output:** `.hody/profile.yaml`

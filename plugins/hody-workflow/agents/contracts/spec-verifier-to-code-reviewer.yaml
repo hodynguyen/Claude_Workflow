@@ -1,0 +1,17 @@
+contract: spec-verifier-to-code-reviewer
+version: 1
+description: Validates spec verifier output before code review begins.
+required_sections:
+  - name: "Spec Compliance Checklist"
+    format: "list of specs checked with pass/fail status"
+  - name: "Deviations"
+    format: "list of implementation deviations from spec with severity"
+  - name: "Missing Implementations"
+    format: "specs that have no corresponding implementation"
+optional_sections:
+  - name: "Business Rule Violations"
+  - name: "API Contract Mismatches"
+validation:
+  - check: "kb_file_modified"
+    file: "business-rules.md"
+    message: "Spec verifier should note any spec gaps in business-rules.md"
