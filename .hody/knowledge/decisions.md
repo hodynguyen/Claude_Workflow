@@ -36,3 +36,21 @@
 - **Decision**: Use MCP (Model Context Protocol) as the integration layer for external tools. Three pillars: (1) MCP servers for GitHub/Linear/Jira — agents gain read/write access to issues, PRs, and comments; (2) Quality gates — pre-commit hook `quality_gate.py` runs code-reviewer checks on staged files; (3) Team sync — `kb_sync.py` pushes/pulls `.hody/knowledge/` to Git branch, Gist, or shared repo. New commands: `/hody-workflow:connect` (configure MCP), `/hody-workflow:ci-report` (CI-compatible test output), `/hody-workflow:sync` (team KB sync). Auto-profile refresh enhances the SessionStart hook to detect stale profiles.
 - **Alternatives**: Direct API calls instead of MCP (couples plugin to specific APIs), custom webhook system (over-engineered for current scope), no CI integration (limits value for teams).
 - **Consequences**: Depends on MCP server availability for each service. Plugin remains useful without MCP — integrations are additive. New scripts (`quality_gate.py`, `kb_sync.py`) follow the same Python stdlib + PyYAML pattern. Agent prompts gain optional `## MCP Tools` sections that activate only when MCP is configured.
+
+## ADR-005: Interaction Tracking with SQLite
+- **Date**: 2026-03-21
+- **Status**: proposed
+- **Context**: The current `state.json` tracks only ONE active workflow at a time. Developers frequently context-switch (pause task A to fix bug B, investigate something mid-feature, ask questions). There is no historical awareness of past work across sessions, no warnings about stale/abandoned work, and no way to answer "what did we do 3 weeks ago with the auth module?". Need a system that classifies every meaningful interaction, tracks per-item state, and surfaces relevant context.
+- **Decision**: Use SQLite (`sqlite3` stdlib module) as the persistence layer for a new interaction tracker (`tracker.py`). Key design choices:
+  - 5 item types: task, investigation, question, discussion, maintenance — each with its own state machine
+  - SQLite over JSON: enables complex queries (tag search, date ranges, joins), audit logs via `status_log` table, and handles concurrent access via WAL mode
+  - `state.json` remains the workflow engine for backward compatibility; `tracker.db` wraps around it providing history, cross-references, and awareness
+  - Agent-driven classification: agents follow prompt guidelines to classify and record interactions, rather than automatic per-message classification (SessionStart hook only runs once per session)
+  - Awareness layer injected via SessionStart hook: shows active items, warnings about stale work, recent completions — capped at small counts to avoid information overload
+  - `tracker.db` is local-only (`.gitignore`d) — not shared via git, unlike `state.json` and knowledge base
+- **Alternatives considered**:
+  - Extend `state.json` with arrays of items (poor query performance, no audit trail, concurrent access issues)
+  - Flat JSON files per item (filesystem clutter, no relational queries)
+  - Full automatic classification of every message (not feasible — SessionStart hook runs once, no per-message hook available; also creates noise)
+  - Replace `state.json` entirely (breaks backward compatibility, higher risk)
+- **Consequences**: New dependency on `sqlite3` (stdlib, zero-risk). `tracker.db` is optional — everything works without it. Agents need prompt updates to call tracker CLI. Two new commands (`/track`, `/history`). Migration path: init creates DB, optionally imports existing `state.json` workflow. Rollout in 3 minor versions (v0.6.0-v0.7.0).
