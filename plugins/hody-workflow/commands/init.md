@@ -80,7 +80,21 @@ Leave these as templates — they cannot be reliably auto-detected from code. No
 
 5. **Check KB file sizes**: If any KB file exceeds 500 lines, archive older sections to `.hody/knowledge/archive/`. Keep the 3 most recent sections in the main file, move the rest to an archive file named `<filename>-archive-<timestamp>.md`.
 
-6. **Show summary**: Display the detected stack and populated knowledge base
+6. **Initialize tracker database**: Create the interaction tracker database for persistent state tracking.
+
+Run the tracker initialization:
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py init --cwd .
+```
+
+This creates `.hody/tracker.db` for tracking workflow history, items, and session context. The database is local-only and should be added to `.gitignore`.
+
+If the project already has a `.hody/state.json` from a previous workflow, also run migration:
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py migrate --cwd .
+```
+
+7. **Show summary**: Display the detected stack and populated knowledge base
 
 ## Output
 
@@ -88,6 +102,7 @@ After running, show the user:
 - Detected project type (fullstack, frontend, backend, etc.)
 - Detected frameworks and languages
 - Knowledge base status: which files were populated with content, which remain as templates
+- Tracker database status: whether `.hody/tracker.db` was initialized (and whether state.json was migrated)
 - Suggest next steps: "Use `/hody-workflow:start-feature` to begin a guided development workflow, or call agents directly (e.g., architect, code-reviewer, unit-tester)"
 
 ## Notes

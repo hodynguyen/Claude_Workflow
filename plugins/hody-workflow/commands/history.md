@@ -1,0 +1,97 @@
+---
+description: View interaction history — past workflows, investigations, decisions, and status transitions. Filter by type, date range, tags, or specific items.
+---
+
+# /hody-workflow:history
+
+View the interaction history for this project.
+
+## Steps
+
+1. **Check tracker exists**: Verify `.hody/tracker.db` exists. If not, tell the user no history is available and suggest running `/hody-workflow:init`.
+
+2. **Determine query type**: Based on the user's request:
+
+| Request | Query |
+|---------|-------|
+| "What did we do last week?" | Search by date range |
+| "Show all completed tasks" | Search by type + status |
+| "History of item X" | Item-specific audit trail |
+| "What's related to auth?" | Search by tags |
+| General / no filter | Show recent items (last 20) |
+
+3. **Execute the query**:
+
+### Recent history (default)
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --limit 20 --cwd .
+```
+
+### By date range
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
+  --after "<YYYY-MM-DD>" \
+  --before "<YYYY-MM-DD>" \
+  --cwd .
+```
+
+### By type and status
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
+  --type <task|investigation|question|discussion|maintenance> \
+  --status <status> \
+  --cwd .
+```
+
+### Item audit trail
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py history <item_id> --cwd .
+```
+
+### By tags
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --tags "<tag1,tag2>" --cwd .
+```
+
+## Output
+
+### List view
+```
+History (last 20 items):
+  2026-03-21  ✅ Task: "Interaction tracking" (completed)
+  2026-03-20  ✅ Investigation: "SQLite vs JSON" (concluded)
+  2026-03-18  ⏸ Task: "Payment refactor" (paused)
+  2026-03-15  ✅ Task: "Auth middleware" (completed)
+```
+
+### Item detail view
+```
+Item: itm_a1b2c3d4e5f6
+Type: task
+Title: "OAuth2 login"
+Status: completed
+Priority: high
+Tags: auth, oauth2, login
+Created: 2026-03-18
+Completed: 2026-03-21
+
+Status History:
+  2026-03-18 10:00  created (initial)
+  2026-03-18 10:05  created → in_progress (started by backend agent)
+  2026-03-20 14:00  in_progress → paused (switching to bug fix)
+  2026-03-21 09:00  paused → in_progress (resumed)
+  2026-03-21 15:00  in_progress → completed (all tests passing)
+```
+
+Use these icons: ✅ completed/concluded/answered/resolved, ⏸ paused/tabled/deferred, 🔄 in_progress/active, ⛔ blocked, ❌ abandoned
+
+## Notes
+
+- History is read-only — use `/hody-workflow:track` to create or update items
+- All data comes from `.hody/tracker.db` (local-only)
+- Date filters use ISO format (YYYY-MM-DD)

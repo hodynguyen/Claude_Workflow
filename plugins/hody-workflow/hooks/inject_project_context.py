@@ -171,6 +171,25 @@ def main():
             except (json.JSONDecodeError, KeyError):
                 pass  # Don't block on corrupt state file
 
+        # Inject tracker context if tracker.db exists
+        tracker_db = os.path.join(cwd, ".hody", "tracker.db")
+        if os.path.isfile(tracker_db):
+            try:
+                hook_dir = os.path.dirname(os.path.abspath(__file__))
+                plugin_root = os.path.dirname(hook_dir)
+                scripts_dir = os.path.join(
+                    plugin_root, "skills", "project-profile", "scripts"
+                )
+                sys.path.insert(0, scripts_dir)
+                from tracker_awareness import get_session_context, format_context_for_hook
+
+                context = get_session_context(cwd)
+                tracker_msg = format_context_for_hook(context)
+                if tracker_msg:
+                    system_msg += " | " + tracker_msg
+            except Exception:
+                pass  # Don't block session on tracker error
+
         output = {"systemMessage": system_msg}
         print(json.dumps(output))
         sys.exit(0)

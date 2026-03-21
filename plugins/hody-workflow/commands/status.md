@@ -62,7 +62,25 @@ Calculate progress as `(completed + skipped) / total agents`. Build the progress
 
 If no active workflow exists, skip this section.
 
-5. **Suggest next steps**: Based on the current state, suggest what the user could do next:
+5. **Check tracker state**: If `.hody/tracker.db` exists, show active tracked items:
+
+```
+Active Items:
+  [HIGH] Task: "OAuth2 login" (in_progress, 3d)
+  [MED]  Investigation: "Auth module" (paused, 2w)
+
+Warnings:
+  ⚠ Task "Payment refactor" paused 7 days — resume or abandon
+```
+
+Run to get tracker context:
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
+```
+
+Only show this section if tracker.db exists and has active items.
+
+6. **Suggest next steps**: Based on the current state, suggest what the user could do next:
 
 - If knowledge base files are empty → suggest using the architect agent to fill them
 - If no tests exist → suggest using unit-tester or integration-tester

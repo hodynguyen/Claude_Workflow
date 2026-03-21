@@ -78,6 +78,19 @@ Recommended workflow:
 
 Only include phases that have agents assigned. This enables `/hody-workflow:resume` to pick up where the user left off.
 
+After creating `.hody/state.json`, also create a tracker item for persistent tracking:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
+  --type task \
+  --title "<feature description>" \
+  --tags "<relevant tags>" \
+  --priority medium \
+  --cwd .
+```
+
+This enables the feature to be tracked across sessions, even after the workflow completes.
+
 8. **Start first phase**: Activate the first agent in the sequence. When starting an agent, set it as `active` in its phase and add an entry to `agent_log` with `started_at`. After each agent completes, update `state.json`: add the agent to `completed`, record `completed_at`, `output_summary`, and `kb_files_modified` in the log. Then prompt the user to continue to the next agent or adjust.
 
 ## Output

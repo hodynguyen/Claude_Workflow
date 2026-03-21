@@ -8,6 +8,14 @@ Resume an interrupted feature workflow from where it left off.
 
 ## Steps
 
+Before resuming, check tracker for additional context about this workflow and related items:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
+```
+
+This shows any warnings about stale items, related investigations, or other tracked items that may affect the current workflow.
+
 1. **Check for active workflow**: Read `.hody/state.json`. If it doesn't exist or `status` is not `"in_progress"`, inform the user:
 
 ```
