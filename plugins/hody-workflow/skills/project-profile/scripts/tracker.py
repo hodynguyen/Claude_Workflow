@@ -719,7 +719,7 @@ def main():
 
     # context
     subparsers.add_parser("context",
-                          help="Show session context (placeholder)")
+                          help="Show session context (active items, warnings, recent completed)")
 
     # migrate
     subparsers.add_parser("migrate", help="Import state.json into tracker")
@@ -788,13 +788,24 @@ def main():
         _output(results)
 
     elif args.command == "context":
-        # Placeholder — will delegate to tracker_awareness module
-        _output({
-            "summary": "Context awareness not yet implemented",
-            "active_items": get_active_items(cwd, limit=5),
-            "warnings": [],
-            "recent_completed": [],
-        })
+        try:
+            try:
+                from . import tracker_awareness
+            except ImportError:
+                import tracker_awareness
+            context = tracker_awareness.get_session_context(cwd)
+            _output(context)
+        except Exception as e:
+            try:
+                fallback_items = get_active_items(cwd, limit=5)
+            except Exception:
+                fallback_items = []
+            _output({
+                "summary": "Error loading context",
+                "active_items": fallback_items,
+                "warnings": [{"severity": "error", "message": str(e)}],
+                "recent_completed": [],
+            })
 
     elif args.command == "migrate":
         result = migrate_from_state_json(cwd)

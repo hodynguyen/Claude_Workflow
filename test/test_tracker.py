@@ -898,6 +898,40 @@ class TestCLI(unittest.TestCase):
         self.assertTrue(len(data) >= 1)
         self.assertEqual(data[0]["title"], "Active Task")
 
+    def test_cli_context(self):
+        """CLI context subcommand returns session context from tracker_awareness."""
+        self._run_cli(["init"])
+        self._run_cli(["create", "--type", "task", "--title", "Context Test Task"])
+        result = self._run_cli(["context"])
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertIn("summary", data)
+        self.assertIn("active_items", data)
+        self.assertIn("warnings", data)
+        self.assertIn("recent_completed", data)
+        # Should have at least the task we just created
+        self.assertTrue(len(data["active_items"]) >= 1)
+
+    def test_cli_context_empty_db(self):
+        """CLI context subcommand works with empty database."""
+        self._run_cli(["init"])
+        result = self._run_cli(["context"])
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertIn("summary", data)
+        self.assertEqual(data["active_items"], [])
+
+    def test_cli_context_no_db(self):
+        """CLI context subcommand returns valid JSON even when no DB exists."""
+        result = self._run_cli(["context"])
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        # Should return consistent shape regardless of DB state
+        self.assertIn("summary", data)
+        self.assertIn("active_items", data)
+        self.assertIn("warnings", data)
+        self.assertIn("recent_completed", data)
+
 
 # =====================================================================
 # tracker_awareness.py tests
