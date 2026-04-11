@@ -26,6 +26,7 @@ from state import (
     complete_workflow,
     abort_workflow,
     get_next_agent,
+    confirm_spec,
 )
 
 
@@ -51,6 +52,8 @@ class TestInitWorkflow(unittest.TestCase):
         self.assertEqual(state["feature"], "Add user auth")
         self.assertEqual(state["type"], "new-feature")
         self.assertEqual(state["status"], "in_progress")
+        self.assertFalse(state["spec_confirmed"])
+        self.assertIsNone(state["spec_file"])
         self.assertEqual(state["phase_order"], ["THINK", "BUILD", "VERIFY", "SHIP"])
         self.assertEqual(state["phases"]["THINK"]["agents"], ["researcher", "architect"])
         self.assertEqual(state["phases"]["THINK"]["completed"], [])
@@ -58,6 +61,16 @@ class TestInitWorkflow(unittest.TestCase):
         self.assertEqual(state["agent_log"], [])
         self.assertIn("created_at", state)
         self.assertIn("updated_at", state)
+
+    def test_init_workflow_with_spec(self):
+        """Creates state.json with spec_confirmed and spec_file."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(
+            self.cwd, "OAuth2 login", "new-feature", phases,
+            spec_confirmed=True, spec_file="spec-oauth2-login.md"
+        )
+        self.assertTrue(state["spec_confirmed"])
+        self.assertEqual(state["spec_file"], "spec-oauth2-login.md")
 
         # Verify file was written
         path = os.path.join(self.cwd, ".hody", "state.json")
@@ -310,6 +323,47 @@ class TestWorkflowLifecycle(unittest.TestCase):
         state = complete_workflow(self.cwd)
         self.assertEqual(state["status"], "completed")
         self.assertEqual(len(state["agent_log"]), 2)
+
+
+class TestConfirmSpec(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = self.tmpdir.name
+        os.makedirs(os.path.join(self.cwd, ".hody"), exist_ok=True)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_confirm_spec(self):
+        """Sets spec_confirmed and spec_file."""
+        phases = {"THINK": ["researcher"], "BUILD": ["backend"]}
+        init_workflow(self.cwd, "Auth feature", "new-feature", phases)
+
+        state = confirm_spec(self.cwd, "spec-auth-feature.md")
+        self.assertTrue(state["spec_confirmed"])
+        self.assertEqual(state["spec_file"], "spec-auth-feature.md")
+
+        # Persisted to disk
+        loaded = load_state(self.cwd)
+        self.assertTrue(loaded["spec_confirmed"])
+        self.assertEqual(loaded["spec_file"], "spec-auth-feature.md")
+
+    def test_confirm_spec_no_workflow(self):
+        """Raises error when no state exists."""
+        with self.assertRaises(FileNotFoundError):
+            confirm_spec(self.cwd, "spec-test.md")
+
+    def test_confirm_spec_preserves_other_fields(self):
+        """Other state fields remain unchanged."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "bug-fix", phases)
+        start_agent(self.cwd, "researcher")
+
+        state = confirm_spec(self.cwd, "spec-test.md")
+        self.assertEqual(state["feature"], "Test")
+        self.assertEqual(state["type"], "bug-fix")
+        self.assertEqual(state["status"], "in_progress")
+        self.assertEqual(state["phases"]["THINK"]["active"], "researcher")
 
 
 class TestCheckpointIntegration(unittest.TestCase):

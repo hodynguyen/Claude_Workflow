@@ -36,7 +36,7 @@ def _make_workflow_id(feature):
     return f"feat-{slug}-{date}"
 
 
-def init_workflow(cwd, feature, feature_type, phases):
+def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False, spec_file=None):
     """Create .hody/state.json with initial workflow state.
 
     Args:
@@ -45,6 +45,8 @@ def init_workflow(cwd, feature, feature_type, phases):
         feature_type: One of the feature types (new-feature, bug-fix, etc.).
         phases: Dict mapping phase names to agent lists, e.g.
                 {"THINK": ["researcher", "architect"], "BUILD": ["backend"]}.
+        spec_confirmed: Whether spec has been confirmed by the user.
+        spec_file: KB filename for the confirmed spec (e.g. "spec-oauth2-login.md").
 
     Returns:
         The created state dict.
@@ -56,6 +58,8 @@ def init_workflow(cwd, feature, feature_type, phases):
         "feature": feature,
         "type": feature_type,
         "status": "in_progress",
+        "spec_confirmed": spec_confirmed,
+        "spec_file": spec_file,
         "created_at": _now(),
         "updated_at": _now(),
         "phases": {},
@@ -81,6 +85,25 @@ def load_state(cwd):
         return None
     with open(path, "r") as f:
         return json.load(f)
+
+
+def confirm_spec(cwd, spec_file):
+    """Mark the spec as confirmed, enabling auto-execution.
+
+    Args:
+        cwd: Project root directory.
+        spec_file: KB filename for the confirmed spec.
+
+    Returns:
+        The updated state dict.
+    """
+    state = load_state(cwd)
+    if state is None:
+        raise FileNotFoundError("No active workflow — .hody/state.json not found")
+
+    state["spec_confirmed"] = True
+    state["spec_file"] = spec_file
+    return _write_state(cwd, state)
 
 
 def _find_agent_phase(state, agent_name):

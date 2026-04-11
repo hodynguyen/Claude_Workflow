@@ -57,7 +57,8 @@ Use ✅ for files with content and ⚠️ for files that are still just the temp
 Active Workflow:
   Feature: [description]
   Type: [type]
-  Status: [PHASE] phase — [agent] agent active
+  Spec: [✅ Confirmed (spec-oauth2-login.md) | ⚠️ Pending — discovery incomplete]
+  Mode: [Auto-execution | Discovery — waiting for spec confirmation]
   Progress: ██████░░░░ 3/8 agents (37%)
 
   THINK:  ✅ researcher → ✅ architect
@@ -68,6 +69,10 @@ Active Workflow:
   Next: Complete [current agent], then start [next agent]
   Resume: /hody-workflow:resume
 ```
+
+Read `spec_confirmed` and `spec_file` from state.json:
+- If `spec_confirmed` is `true` → show "Spec: ✅ Confirmed ([spec_file])" and "Mode: Auto-execution"
+- If `spec_confirmed` is `false` or missing → show "Spec: ⚠️ Pending" and "Mode: Discovery"
 
 Use these icons: ✅ completed, 🔄 active, ⏭️ skipped, ⬜ pending.
 

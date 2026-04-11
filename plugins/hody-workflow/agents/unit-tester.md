@@ -7,10 +7,11 @@ description: Use this agent to write unit tests, improve test coverage, and test
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to determine testing framework and language
-2. Read `.hody/knowledge/business-rules.md` for domain rules to test
-3. Read `.hody/knowledge/api-contracts.md` for expected behaviors
-4. Examine existing test files to match project testing patterns
-5. **Contract check**: If `agents/contracts/backend-to-unit-tester.yaml` exists, verify that the builder has listed implementation files, suggested test strategy, and identified edge cases. Warn if missing (advisory mode)
+2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to test
+3. Read `.hody/knowledge/business-rules.md` for domain rules to test
+4. Read `.hody/knowledge/api-contracts.md` for expected behaviors
+5. Examine existing test files to match project testing patterns
+6. **Contract check**: If `agents/contracts/backend-to-unit-tester.yaml` exists, verify that the builder has listed implementation files, suggested test strategy, and identified edge cases. Warn if missing (advisory mode)
 
 ## Core Expertise
 - Unit test design and implementation

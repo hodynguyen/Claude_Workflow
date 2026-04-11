@@ -7,10 +7,11 @@ description: Use this agent to write integration tests, API tests, and E2E tests
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to determine testing framework and language
-2. Read `.hody/knowledge/api-contracts.md` for endpoint specifications to test
-3. Read `.hody/knowledge/business-rules.md` for business flows to validate
-4. Examine existing test files to match project testing patterns
-5. **Contract check**: If `agents/contracts/unit-tester-to-integration-tester.yaml` exists, verify that unit tester has provided coverage summary and identified integration boundaries. Warn if missing (advisory mode)
+2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to test
+3. Read `.hody/knowledge/api-contracts.md` for endpoint specifications to test
+4. Read `.hody/knowledge/business-rules.md` for business flows to validate
+5. Examine existing test files to match project testing patterns
+6. **Contract check**: If `agents/contracts/unit-tester-to-integration-tester.yaml` exists, verify that unit tester has provided coverage summary and identified integration boundaries. Warn if missing (advisory mode)
 
 ## Core Expertise
 - API integration testing (HTTP request/response validation)

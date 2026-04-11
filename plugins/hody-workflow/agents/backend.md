@@ -7,11 +7,12 @@ description: Use this agent to implement backend features, API endpoints, busine
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to determine backend framework, language, and database
-2. Read `.hody/knowledge/api-contracts.md` for endpoint specifications to implement
-3. Read `.hody/knowledge/business-rules.md` for domain logic requirements
-4. Read `.hody/knowledge/architecture.md` for service structure and patterns
-5. Examine existing code to match project patterns and conventions
-6. **Contract check**: If `agents/contracts/architect-to-backend.yaml` exists, verify that the architect has provided the required handoff (API endpoints defined, data models specified, architecture.md updated). If any required items are missing, warn the user before proceeding — but do not block (advisory mode)
+2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that drives implementation
+3. Read `.hody/knowledge/api-contracts.md` for endpoint specifications to implement
+4. Read `.hody/knowledge/business-rules.md` for domain logic requirements
+5. Read `.hody/knowledge/architecture.md` for service structure and patterns
+6. Examine existing code to match project patterns and conventions
+7. **Contract check**: If `agents/contracts/architect-to-backend.yaml` exists, verify that the architect has provided the required handoff (API endpoints defined, data models specified, architecture.md updated). If any required items are missing, warn the user before proceeding — but do not block (advisory mode)
 
 ## Core Expertise
 - API endpoint implementation (REST, GraphQL, gRPC)

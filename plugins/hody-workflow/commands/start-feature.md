@@ -1,11 +1,11 @@
 ---
-description: Start a guided feature development workflow. Analyzes the feature type and recommends an agent sequence through THINK, BUILD, VERIFY, and SHIP phases.
+description: Start a spec-driven feature development workflow. Gathers requirements through discovery questions, confirms spec with user, then auto-runs all agents without interruption.
 argument-hint: "[feature description and/or focus, e.g. 'add OAuth2 login, focus on security']"
 ---
 
 # /hody-workflow:start-feature
 
-Start a guided, multi-phase feature development workflow.
+Start a spec-driven, multi-phase feature development workflow.
 
 ## User Instructions
 
@@ -19,13 +19,31 @@ If the section above contains text, treat it as the user's initial feature descr
 
 If empty, ask the user for the feature description normally as in step 2.
 
+## Workflow Overview
+
+This command follows a **spec-driven development** approach:
+
+```
+DISCOVERY → SPEC CONFIRMATION → AUTO-EXECUTION
+     ↑              │
+     └──────────────┘  (iterate until user confirms)
+```
+
+1. **Discovery**: Ask all clarifying questions upfront, discuss trade-offs with user
+2. **Spec Confirmation**: Summarize everything into a clear spec, user confirms
+3. **Auto-Execution**: Run all agents in sequence automatically — no stopping between agents
+
 ## Steps
+
+### Phase A: Discovery
 
 1. **Check initialization**: Verify `.hody/profile.yaml` exists. If not, run `/hody-workflow:init` first.
 
-2. **Gather feature description**: Ask the user to describe the feature they want to build. Ask clarifying questions if the description is vague.
+2. **Read project context**: Read `.hody/profile.yaml` and all `.hody/knowledge/` files to understand the current project state.
 
-3. **Classify feature type**: Based on the description, classify into one of these types:
+3. **Gather feature description**: If not provided in arguments, ask the user to describe the feature.
+
+4. **Classify feature type**: Based on the description, classify into one of these types:
 
 | Type | Description |
 |------|-------------|
@@ -38,35 +56,101 @@ If empty, ask the user for the feature description normally as in step 2.
 | `deployment` | Infrastructure or deployment change |
 | `hotfix` | Urgent production fix |
 
-4. **Recommend agent workflow**: Map the feature type to an agent sequence:
+5. **Generate discovery questions**: Based on the feature type, tech stack (from profile.yaml), and existing knowledge base, compile a **single batch** of all questions that need clarification. Group them by category:
 
-| Type | Agent Sequence |
-|------|---------------|
-| `new-feature` | researcher → architect → frontend + backend → unit-tester → integration-tester → code-reviewer → spec-verifier → devops |
-| `bug-fix` | architect → frontend or backend → unit-tester → code-reviewer |
-| `refactor` | code-reviewer (assess) → frontend or backend → unit-tester → code-reviewer (verify) |
-| `api-endpoint` | architect → backend → integration-tester → code-reviewer |
-| `ui-change` | frontend → unit-tester → code-reviewer |
-| `tech-spike` | researcher → architect |
-| `deployment` | devops |
-| `hotfix` | frontend or backend → unit-tester → devops |
+**For `new-feature` / `api-endpoint`:**
+- **Architecture**: Where does this fit in the current system? New service or extend existing?
+- **API Design**: What endpoints are needed? Request/response shapes? Auth requirements?
+- **Data Model**: New tables/collections? Schema changes? Migrations needed?
+- **Business Logic**: What are the core rules? Edge cases? Error scenarios?
+- **Frontend** (if applicable): What UI components? User flow? State management approach?
+- **Testing**: Coverage requirements? Integration test scenarios? E2E needed?
+- **Deployment**: Feature flags? Rollback plan? Environment-specific config?
 
-5. **Present the plan**: Show the user the recommended workflow with phases:
+**For `bug-fix` / `hotfix`:**
+- **Reproduction**: Steps to reproduce? Which environments?
+- **Root Cause**: Known cause or needs investigation? Related recent changes?
+- **Scope**: Which components are affected? Is it isolated or systemic?
+- **Testing**: How to verify the fix? Regression tests needed?
+
+**For `refactor`:**
+- **Scope**: Which modules/files? What patterns to introduce/remove?
+- **Behavior**: Must behavior stay identical? Any acceptable changes?
+- **Testing**: Existing test coverage? Additional tests needed?
+- **Migration**: Breaking API changes? Backward compatibility needed?
+
+**For `tech-spike`:**
+- **Goal**: What question are we trying to answer?
+- **Constraints**: Time box? Must integrate with existing stack?
+- **Output**: Prototype? Comparison doc? ADR?
+
+Present ALL questions at once. Let the user answer in any order, partially, or all at once.
+
+6. **Iterate until clear**: If answers are vague or raise new questions, ask follow-ups. But always batch questions — never ask one at a time. Continue until you have enough information to write a spec.
+
+### Phase B: Spec Confirmation
+
+7. **Write the spec**: Synthesize all discovery answers into a structured spec document. Present it to the user:
 
 ```
-Feature: [user's description]
-Type: [classified type]
+Feature Spec: [title]
+━━━━━━━━━━━━━━━━━━━━
 
-Recommended workflow:
+Type: [classified type]
+Priority: [high/medium/low]
+
+## Summary
+[1-2 sentence description of what will be built]
+
+## Requirements
+- [Req 1]
+- [Req 2]
+- ...
+
+## Technical Design
+- Architecture: [approach]
+- API Endpoints: [list with methods, paths, request/response]
+- Data Model: [schema changes]
+- Key Decisions: [trade-offs made during discovery]
+
+## Out of Scope
+- [What we explicitly won't do in this feature]
+
+## Agent Workflow
   THINK:  [agents]
   BUILD:  [agents]
   VERIFY: [agents]
-  SHIP:   [agents]
+  SHIP:   [agents] (optional)
+
+Estimated agents: [N] agents across [M] phases
 ```
 
-6. **Ask for confirmation**: Let the user adjust the plan (skip agents, reorder, etc.)
+8. **Get user confirmation**: Ask the user to confirm or request changes. The user may:
+- Approve as-is → proceed to execution
+- Request changes → update spec and re-present
+- Add/remove agents → adjust the workflow
+- Change scope → update requirements
 
-7. **Create workflow state**: After the user confirms the plan, create `.hody/state.json` to persist the workflow. The file should have this structure:
+Do NOT proceed to execution until the user explicitly confirms.
+
+### Phase C: Auto-Execution
+
+9. **Save spec to knowledge base**: Write the confirmed spec to `.hody/knowledge/spec-<slugified-feature>.md` with YAML frontmatter:
+
+```markdown
+---
+tags: [spec, <feature-type>, <relevant-tags>]
+date: <YYYY-MM-DD>
+author-agent: start-feature
+status: confirmed
+---
+
+# Spec: [feature title]
+
+[Full spec content from step 7]
+```
+
+10. **Create workflow state**: Create `.hody/state.json`:
 
 ```json
 {
@@ -74,6 +158,8 @@ Recommended workflow:
   "feature": "<user's feature description>",
   "type": "<classified type>",
   "status": "in_progress",
+  "spec_confirmed": true,
+  "spec_file": "spec-<slugified-feature>.md",
   "created_at": "<ISO 8601 UTC>",
   "updated_at": "<ISO 8601 UTC>",
   "phases": {
@@ -89,9 +175,7 @@ Recommended workflow:
 }
 ```
 
-Only include phases that have agents assigned. This enables `/hody-workflow:resume` to pick up where the user left off.
-
-After creating `.hody/state.json`, also create a tracker item for persistent tracking:
+Also create a tracker item:
 
 ```bash
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
@@ -102,22 +186,78 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
   --cwd .
 ```
 
-This enables the feature to be tracked across sessions, even after the workflow completes.
+11. **Auto-run all agents**: Execute agents in sequence automatically. For each agent:
+   - Set it as `active` in state.json, add `agent_log` entry
+   - Activate the agent (it reads profile.yaml + KB + spec file)
+   - When agent completes, update state.json (completed, output_summary, kb_files_modified)
+   - **Immediately** proceed to next agent — do NOT pause to ask the user
 
-8. **Start first phase**: Activate the first agent in the sequence. When starting an agent, set it as `active` in its phase and add an entry to `agent_log` with `started_at`. After each agent completes, update `state.json`: add the agent to `completed`, record `completed_at`, `output_summary`, and `kb_files_modified` in the log. Then prompt the user to continue to the next agent or adjust.
+   **Important**: Between agents, briefly show a one-line status update so the user can follow progress:
+   ```
+   ✅ researcher completed — "Researched OAuth2 providers" → Starting architect...
+   ```
+
+   **Parallel agents**: During BUILD phase, if both `frontend` and `backend` are present, run them in parallel.
+
+12. **Complete workflow**: After all agents finish:
+   - Set workflow status to `completed`
+   - Show a final summary of all agent outputs
+   - Update spec file status to `implemented`
+
+## Agent Sequence by Feature Type
+
+| Type | Agent Sequence |
+|------|---------------|
+| `new-feature` | researcher → architect → frontend + backend → unit-tester → integration-tester → code-reviewer → spec-verifier |
+| `bug-fix` | architect → frontend or backend → unit-tester → code-reviewer |
+| `refactor` | code-reviewer (assess) → frontend or backend → unit-tester → code-reviewer (verify) |
+| `api-endpoint` | architect → backend → integration-tester → code-reviewer |
+| `ui-change` | frontend → unit-tester → code-reviewer |
+| `tech-spike` | researcher → architect |
+| `deployment` | devops |
+| `hotfix` | frontend or backend → unit-tester → devops |
 
 ## Output
 
-After presenting the plan:
-- Show which agents will be used and in what order
-- Indicate which phases are optional (e.g., SHIP phase for non-deployment features)
-- Suggest starting with the first agent
+### During Discovery
+- Present all questions grouped by category
+- Show the iterative spec as it develops
+
+### During Execution
+- One-line per agent completion
+- Final summary with all outputs
+
+### Final Summary
+```
+Workflow Complete
+━━━━━━━━━━━━━━━━
+
+Feature: [description]
+Type: [type]
+Duration: [time from start to finish]
+
+Agent Results:
+  ✅ researcher  — [summary]
+  ✅ architect   — [summary]
+  ✅ backend     — [summary]
+  ✅ frontend    — [summary]
+  ✅ unit-tester — [summary]
+  ✅ code-reviewer — [summary]
+
+KB Files Updated:
+  → architecture.md
+  → api-contracts.md
+  → decisions.md
+
+Spec: .hody/knowledge/spec-<feature>.md
+```
 
 ## Notes
 
-- The workflow is a recommendation, not a rigid sequence — users can skip or reorder agents
-- Frontend and backend agents can run in parallel during the BUILD phase
-- The SHIP phase (devops) is optional for most feature types
-- Each agent will read the knowledge base, so context accumulates across phases
-- If an agent writes to the knowledge base, subsequent agents benefit automatically
-- Workflow state is persisted in `.hody/state.json` — use `/hody-workflow:resume` to continue an interrupted workflow
+- **Discovery is interactive** — iterate with the user until spec is clear
+- **Execution is automatic** — once spec is confirmed, agents run without interruption
+- Frontend and backend agents can run in parallel during BUILD phase
+- SHIP phase (devops) is included only for deployment/hotfix types
+- Each agent reads the spec file + KB, so context flows naturally between agents
+- If an agent is interrupted mid-execution, use `/hody-workflow:resume` to continue — it will auto-run remaining agents since spec is already confirmed
+- Workflow state is persisted in `.hody/state.json`, spec in `.hody/knowledge/spec-*.md`

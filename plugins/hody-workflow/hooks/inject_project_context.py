@@ -146,6 +146,9 @@ def main():
                     state = json.load(sf)
                 if state.get("status") == "in_progress":
                     feature = state.get("feature", "unknown")
+                    spec_confirmed = state.get("spec_confirmed", False)
+                    spec_status = "spec confirmed" if spec_confirmed else "spec pending"
+
                     # Find next agent
                     next_info = None
                     for phase in state.get("phase_order", []):
@@ -157,11 +160,19 @@ def main():
                                 break
                         if next_info:
                             break
-                    if next_info:
+
+                    if not spec_confirmed:
                         system_msg += (
                             f" | Active workflow: '{feature}'"
-                            f" — next: {next_info[1]} ({next_info[0]} phase)"
-                            f". Use /hody-workflow:resume to continue."
+                            f" — {spec_status}, discovery incomplete"
+                            f". Use /hody-workflow:resume to continue discovery."
+                        )
+                    elif next_info:
+                        system_msg += (
+                            f" | Active workflow: '{feature}'"
+                            f" — {spec_status}, next: {next_info[1]}"
+                            f" ({next_info[0]} phase)"
+                            f". Use /hody-workflow:resume to auto-run remaining agents."
                         )
                     else:
                         system_msg += (

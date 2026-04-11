@@ -7,10 +7,11 @@ description: Use this agent to verify that implementation matches specifications
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to understand the current tech stack
-2. Read `.hody/knowledge/api-contracts.md` for API specifications
-3. Read `.hody/knowledge/business-rules.md` for domain requirements
-4. Read `.hody/knowledge/architecture.md` for design constraints
-5. Identify the code scope to verify against specs
+2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the **primary source of truth** for verification
+3. Read `.hody/knowledge/api-contracts.md` for API specifications
+4. Read `.hody/knowledge/business-rules.md` for domain requirements
+5. Read `.hody/knowledge/architecture.md` for design constraints
+6. Identify the code scope to verify against specs
 
 ## Core Expertise
 - Specification compliance analysis
