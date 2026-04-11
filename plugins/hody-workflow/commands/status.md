@@ -1,10 +1,23 @@
 ---
 description: Show current project status including detected tech stack, knowledge base overview, and suggested next steps.
+argument-hint: "[optional: focus area, e.g. 'verbose' or 'kb only']"
 ---
 
 # /hody-workflow:status
 
 Show the current Hody Workflow status for this project.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, apply it as a filter or focus for the status output:
+- "verbose" → show full profile.yaml, all KB files with line counts, full workflow state
+- "kb only" → show only knowledge base status, skip tech stack and workflow
+- "workflow only" → show only active workflow state and checkpoints
+- "tracker" → include tracker.db stats (active items, recent sessions)
+
+If empty, show the default status summary.
 
 ## Steps
 

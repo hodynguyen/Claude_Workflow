@@ -1,10 +1,24 @@
 ---
 description: Search the project knowledge base (.hody/knowledge/) for specific topics, keywords, or sections. Use when you need to find information across KB files.
+argument-hint: "<query> [filters: tag:x agent:y status:z file:name]"
 ---
 
 # /hody-workflow:kb-search
 
 Search the project's knowledge base for relevant information.
+
+## User Instructions
+
+$ARGUMENTS
+
+Treat the section above as the search query plus optional filters:
+- Plain text → full-text search across all KB files
+- `tag:<name>` → filter by frontmatter tag
+- `agent:<name>` → filter by author_agent in frontmatter
+- `status:<value>` → filter by status (active, archived, etc.)
+- `file:<name>` → limit search to one KB file
+
+If empty, ask the user what they want to search for.
 
 ## Steps
 

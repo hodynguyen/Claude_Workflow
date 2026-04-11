@@ -1,10 +1,23 @@
 ---
 description: Resume an interrupted workflow from the last checkpoint.
+argument-hint: "[optional: specific agent to resume or skip, e.g. 'skip code-reviewer']"
 ---
 
 # /hody-workflow:resume
 
 Resume an interrupted feature workflow from where it left off.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, apply it as guidance for this resume:
+- "skip <agent>" → mark that agent as skipped in state.json before computing next
+- "restart <agent>" → clear that agent's checkpoint and start fresh
+- "continue from <agent>" → jump directly to that agent instead of the default next
+- "focus on <area>" → pass this as additional context to the next agent
+
+If empty, resume normally by finding the next unfinished agent.
 
 ## Steps
 

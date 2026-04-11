@@ -1,10 +1,23 @@
 ---
 description: Start a guided feature development workflow. Analyzes the feature type and recommends an agent sequence through THINK, BUILD, VERIFY, and SHIP phases.
+argument-hint: "[feature description and/or focus, e.g. 'add OAuth2 login, focus on security']"
 ---
 
 # /hody-workflow:start-feature
 
 Start a guided, multi-phase feature development workflow.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, treat it as the user's initial feature description and/or additional guidance for this workflow. Use it to:
+- Pre-fill step 2 (feature description) so you can skip asking if the description is clear enough
+- Apply focus areas (e.g. "focus on security" → emphasize code-reviewer + spec-verifier)
+- Narrow scope (e.g. "only backend" → skip frontend agent in BUILD)
+- Override the default agent sequence if the user explicitly requests it
+
+If empty, ask the user for the feature description normally as in step 2.
 
 ## Steps
 

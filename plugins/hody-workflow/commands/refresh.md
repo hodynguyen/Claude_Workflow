@@ -1,10 +1,22 @@
 ---
 description: Re-detect project tech stack and update .hody/profile.yaml. Use when dependencies or project structure have changed.
+argument-hint: "[optional: e.g. '--deep' or 'focus on backend']"
 ---
 
 # /hody-workflow:refresh
 
 Re-detect the project tech stack and update the existing profile.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, apply it to the refresh:
+- "--deep" or "deep" → pass `--deep` flag to detect_stack.py for deep dependency analysis
+- "focus on <area>" → emphasize that area in the output summary (backend/frontend/infra)
+- "skip integrations" → preserve integrations section as-is without re-checking
+
+If empty, run a standard refresh.
 
 ## Steps
 

@@ -1,10 +1,22 @@
 ---
 description: Generate a CI-compatible test report from test results. Supports GitHub Actions annotations, JUnit XML, and Markdown summary formats.
+argument-hint: "[format: 'github' | 'junit' | 'markdown'] [optional: input file]"
 ---
 
 # /hody-workflow:ci-report
 
 Generate a CI-compatible test report for the current project.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, apply it to the report generation:
+- Format name (github, junit, markdown) → output in that format
+- File path → use that file as the test results input
+- "summary" → short top-level metrics only
+
+If empty, auto-detect format from environment (GITHUB_ACTIONS env → github format) and look for common test result files.
 
 ## Steps
 

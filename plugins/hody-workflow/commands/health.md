@@ -1,10 +1,22 @@
 ---
 description: Show project health dashboard with KB completeness, tech debt, workflow stats, and recommendations.
+argument-hint: "[optional: section focus, e.g. 'tech-debt only' or 'kb completeness']"
 ---
 
 # /hody-workflow:health
 
 Show a comprehensive project health dashboard.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, focus the dashboard:
+- "<section> only" → show only that section (kb, tech-debt, workflow, contracts)
+- "recommendations" → prioritize actionable recommendations
+- "summary" → short one-line-per-metric output
+
+If empty, show the full health dashboard.
 
 ## Steps
 

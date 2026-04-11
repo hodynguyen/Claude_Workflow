@@ -1,10 +1,24 @@
 ---
 description: Create, update, and search tracked items (tasks, investigations, questions, discussions, maintenance). Use to manage interaction history across sessions.
+argument-hint: "<subcommand> [args]  e.g. 'create task \"Fix login bug\"' or 'update itm_abc123 status:completed'"
 ---
 
 # /hody-workflow:track
 
 Manage tracked items in the interaction tracker.
+
+## User Instructions
+
+$ARGUMENTS
+
+Parse the section above as a tracker subcommand:
+- `create <type> "<title>" [tags:...]` → create a new item
+- `update <item_id> [status:x notes:y]` → update existing item
+- `search <query> [type:x tag:y]` → search items
+- `show <item_id>` → show full item details + history
+- `close <item_id>` → transition to terminal state (completed/resolved/answered)
+
+If empty, show available subcommands and ask the user what they want to do.
 
 ## Steps
 

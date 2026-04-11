@@ -1,10 +1,24 @@
 ---
 description: View interaction history — past workflows, investigations, decisions, and status transitions. Filter by type, date range, tags, or specific items.
+argument-hint: "[filters: type:x since:date tag:y limit:N]"
 ---
 
 # /hody-workflow:history
 
 View the interaction history for this project.
+
+## User Instructions
+
+$ARGUMENTS
+
+Treat the section above as filters for the history query:
+- `type:<task|investigation|question|discussion|maintenance>` → filter by item type
+- `since:<date>` → show items created after date (e.g. "last week", "2026-04-01")
+- `tag:<name>` → filter by tag
+- `limit:<N>` → max N items
+- Plain text → free-text search on title/description
+
+If empty, show the 20 most recent items of any type.
 
 ## Steps
 

@@ -1,10 +1,22 @@
 ---
 description: Rescan project codebase and update .hody/knowledge/ files with the latest architecture, APIs, and runbook commands.
+argument-hint: "[optional: specific KB file or focus area, e.g. 'api-contracts only']"
 ---
 
 # /hody-workflow:update-kb
 
 Rescan the project codebase and intelligently update knowledge base files to reflect the current state.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, narrow or focus the update:
+- "<filename> only" (e.g. "api-contracts only") → update only that KB file
+- "skip <filename>" → update all except the named file
+- "focus on <area>" → prioritize sections related to that area
+
+If empty, update all KB files as usual.
 
 ## Important: Merge Strategy
 

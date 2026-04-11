@@ -1,10 +1,23 @@
 ---
 description: Configure MCP server integrations for the project. Connects agents to external tools like GitHub, Linear, and Jira.
+argument-hint: "[optional: specific integration, e.g. 'github' or 'linear jira']"
 ---
 
 # /hody-workflow:connect
 
 Configure MCP (Model Context Protocol) server integrations so agents can interact with external tools.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, treat it as the target integration(s) to configure:
+- Single name (e.g. "github") → configure only that integration
+- Multiple names (e.g. "linear jira") → configure each
+- "list" → list currently configured integrations, don't add new ones
+- "disable <name>" → remove that integration from profile.yaml
+
+If empty, guide the user through available integrations interactively.
 
 ## Steps
 

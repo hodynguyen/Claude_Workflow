@@ -1,10 +1,23 @@
 ---
 description: Sync the knowledge base (.hody/knowledge/) with a shared location for team collaboration. Supports git branch, GitHub Gist, and shared repo modes.
+argument-hint: "[mode: 'git-branch' | 'gist' | 'shared-repo'] [optional: push/pull]"
 ---
 
 # /hody-workflow:sync
 
 Push or pull `.hody/knowledge/` to a shared location so team members can share accumulated project knowledge.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, apply it to the sync:
+- Mode name (git-branch, gist, shared-repo) → use that sync mode
+- "push" → only upload local KB to shared location
+- "pull" → only download from shared location
+- "dry-run" → show what would change without modifying anything
+
+If empty, detect the configured sync mode from profile.yaml and sync bidirectionally.
 
 ## Steps
 

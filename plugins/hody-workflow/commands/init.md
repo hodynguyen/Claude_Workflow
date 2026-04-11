@@ -1,10 +1,23 @@
 ---
 description: Initialize hody workflow for the current project. Detects tech stack, creates knowledge base, and populates it with project context.
+argument-hint: "[optional: focus area, e.g. 'focus on backend services' or 'skip frontend KB']"
 ---
 
 # /hody-workflow:init
 
 Initialize Hody Workflow for the current project.
+
+## User Instructions
+
+$ARGUMENTS
+
+If the section above contains text, treat it as additional user guidance for THIS init run. Apply it on top of the standard steps below — for example:
+- "focus on backend microservices" → emphasize backend KB sections, skip frontend-specific scans
+- "only init the email-microservice" → narrow scope to that subdirectory (but `.hody/` still goes at the root)
+- "skip KB populate" → run steps 1, 2, 4, 5, 6 but skip step 3
+- "verbose mode" → show detailed progress for each step
+
+If the section is empty or just whitespace, run init normally with no special focus.
 
 ## Prerequisites — Root Directory Check
 
