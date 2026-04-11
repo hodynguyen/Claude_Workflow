@@ -30,13 +30,17 @@ def _write_state(cwd, state):
 
 def _make_workflow_id(feature):
     """Generate workflow ID from feature description + date."""
-    slug = re.sub(r"[^a-z0-9]+", "-", feature.lower()).strip("-")
-    slug = slug[:40]  # truncate long slugs
     date = datetime.now(timezone.utc).strftime("%Y%m%d")
-    return f"feat-{slug}-{date}"
+    return f"feat-{_make_slug(feature)}-{date}"
 
 
-def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False, spec_file=None):
+def _make_slug(text):
+    """Convert text to a URL-friendly slug."""
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40]
+
+
+def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False,
+                  spec_file=None, log_file=None):
     """Create .hody/state.json with initial workflow state.
 
     Args:
@@ -47,11 +51,16 @@ def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False, spec
                 {"THINK": ["researcher", "architect"], "BUILD": ["backend"]}.
         spec_confirmed: Whether spec has been confirmed by the user.
         spec_file: KB filename for the confirmed spec (e.g. "spec-oauth2-login.md").
+        log_file: KB filename for the feature log (auto-generated if None).
 
     Returns:
         The created state dict.
     """
     phase_order = [p for p in ["THINK", "BUILD", "VERIFY", "SHIP"] if p in phases]
+    slug = _make_slug(feature)
+
+    if log_file is None:
+        log_file = f"log-{slug}.md"
 
     state = {
         "workflow_id": _make_workflow_id(feature),
@@ -60,6 +69,7 @@ def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False, spec
         "status": "in_progress",
         "spec_confirmed": spec_confirmed,
         "spec_file": spec_file,
+        "log_file": log_file,
         "created_at": _now(),
         "updated_at": _now(),
         "phases": {},
@@ -284,10 +294,16 @@ def _clear_all_checkpoints(cwd, workflow_id):
 
 
 def complete_workflow(cwd):
-    """Set status = 'completed', record end time. Clears all checkpoints."""
+    """Set status = 'completed', record end time.
+
+    Clears all checkpoints and finalizes the feature log.
+    """
     state = load_state(cwd)
     if state is None:
         raise FileNotFoundError("No active workflow — .hody/state.json not found")
+
+    # Finalize log before changing status
+    finalize_feature_log(cwd, state.get("log_file"))
 
     state["status"] = "completed"
     _clear_all_checkpoints(cwd, state["workflow_id"])
@@ -303,6 +319,149 @@ def abort_workflow(cwd):
     state["status"] = "aborted"
     _clear_all_checkpoints(cwd, state["workflow_id"])
     return _write_state(cwd, state)
+
+
+def _log_path(cwd, log_file):
+    """Return absolute path to the feature log file in KB."""
+    return os.path.join(cwd, ".hody", "knowledge", log_file)
+
+
+def create_feature_log(cwd, feature, feature_type, spec_file=None, log_file=None):
+    """Create the initial feature log file in the knowledge base.
+
+    Args:
+        cwd: Project root directory.
+        feature: Feature description.
+        feature_type: Classified feature type.
+        spec_file: Spec filename if available.
+        log_file: Log filename (reads from state.json if None).
+
+    Returns:
+        The log file path.
+    """
+    if log_file is None:
+        state = load_state(cwd)
+        if state is None:
+            raise FileNotFoundError("No active workflow")
+        log_file = state.get("log_file", f"log-{_make_slug(feature)}.md")
+
+    path = _log_path(cwd, log_file)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    spec_ref = f"\n\n## Spec\n-> {spec_file}" if spec_file else ""
+
+    content = (
+        f"---\n"
+        f"tags: [log, {feature_type}]\n"
+        f"date: {today}\n"
+        f"author-agent: start-feature\n"
+        f"status: in_progress\n"
+        f"---\n\n"
+        f"# Feature Log: {feature}\n"
+        f"\n"
+        f"Type: {feature_type}\n"
+        f"Started: {today}"
+        f"{spec_ref}\n\n"
+        f"## Agent Work\n"
+    )
+
+    with open(path, "w") as f:
+        f.write(content)
+
+    return path
+
+
+def append_feature_log(cwd, agent_name, phase, summary,
+                       files_created=None, files_modified=None,
+                       kb_updated=None, decisions=None, log_file=None):
+    """Append a structured agent entry to the feature log.
+
+    Args:
+        cwd: Project root directory.
+        agent_name: Name of the agent (e.g. "backend").
+        phase: Workflow phase (e.g. "BUILD").
+        summary: Brief description of what the agent did.
+        files_created: List of files the agent created.
+        files_modified: List of files the agent modified.
+        kb_updated: List of KB files updated.
+        decisions: List of key decisions made.
+        log_file: Log filename (reads from state.json if None).
+    """
+    if log_file is None:
+        state = load_state(cwd)
+        if state is None:
+            return  # No workflow, skip silently
+        log_file = state.get("log_file")
+        if not log_file:
+            return
+
+    path = _log_path(cwd, log_file)
+    if not os.path.isfile(path):
+        return  # Log not created yet, skip silently
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    lines = [f"\n### {agent_name} ({phase}) — {today}\n"]
+    lines.append(f"- {summary}\n")
+
+    if files_created:
+        lines.append("- Files created: " + ", ".join(f"`{f}`" for f in files_created) + "\n")
+    if files_modified:
+        lines.append("- Files modified: " + ", ".join(f"`{f}`" for f in files_modified) + "\n")
+    if kb_updated:
+        lines.append("- KB updated: " + ", ".join(kb_updated) + "\n")
+    if decisions:
+        for d in decisions:
+            lines.append(f"- Decision: {d}\n")
+
+    with open(path, "a") as f:
+        f.writelines(lines)
+
+
+def finalize_feature_log(cwd, log_file=None):
+    """Append a final summary section to the feature log.
+
+    Reads agent_log from state.json to build the summary.
+    """
+    state = load_state(cwd)
+    if state is None:
+        return
+
+    if log_file is None:
+        log_file = state.get("log_file")
+    if not log_file:
+        return
+
+    path = _log_path(cwd, log_file)
+    if not os.path.isfile(path):
+        return
+
+    # Build summary from agent_log
+    lines = ["\n## Summary\n"]
+    completed_count = 0
+    for entry in state.get("agent_log", []):
+        if entry.get("completed_at"):
+            completed_count += 1
+            agent = entry["agent"]
+            phase = entry["phase"]
+            summary = entry.get("output_summary", "")
+            kb = entry.get("kb_files_modified", [])
+            kb_str = f" (KB: {', '.join(kb)})" if kb else ""
+            lines.append(f"- **{agent}** ({phase}): {summary}{kb_str}\n")
+
+    lines.insert(1, f"\n{completed_count} agents completed.\n\n")
+
+    # Update frontmatter status
+    with open(path, "r") as f:
+        content = f.read()
+
+    content = content.replace("status: in_progress", "status: completed", 1)
+
+    with open(path, "w") as f:
+        f.write(content)
+
+    with open(path, "a") as f:
+        f.writelines(lines)
 
 
 def get_next_agent(state):

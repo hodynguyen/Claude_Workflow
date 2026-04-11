@@ -96,7 +96,7 @@ The spec was not finalized before the session was interrupted. Continue the disc
 
 The spec is confirmed — run all remaining agents without stopping.
 
-a. **Read the spec**: Read `.hody/knowledge/<spec_file>` to load the confirmed spec.
+a. **Read the spec and log**: Read `.hody/knowledge/<spec_file>` for the confirmed spec and `.hody/knowledge/<log_file>` for work already done by previous agents.
 
 b. **Identify remaining agents**: Find all agents that are not in `completed` or `skipped`.
 
@@ -137,6 +137,7 @@ Workflow Complete
 
 Feature: [description]
 Spec: .hody/knowledge/[spec_file]
+Log:  .hody/knowledge/[log_file]
 
 Agent Results:
   ✅ researcher  — [summary]

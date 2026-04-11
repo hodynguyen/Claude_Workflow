@@ -98,11 +98,16 @@ If no integrations are configured, work normally by reading code directly.
 If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:
 - Check which phase and agent sequence you are part of
 - Review `agent_log` entries from previous agents for context on work already done
-- After completing your work, update `.hody/state.json`:
-  - Add yourself to the current phase's `completed` list
-  - Clear `active` if you were the active agent
-  - Add an entry to `agent_log` with `completed_at`, `output_summary` (1-2 sentence summary of what you did), and `kb_files_modified` (list of KB files you updated)
-- Suggest the next agent based on the workflow state
+- Read the feature log (`.hody/knowledge/<log_file>`) to see detailed work from previous agents
+- After completing your work:
+  1. Update `.hody/state.json`: add yourself to `completed`, clear `active`, add `agent_log` entry with `completed_at`, `output_summary`, and `kb_files_modified`
+  2. **Append to feature log** (`.hody/knowledge/<log_file>` from state.json): write a structured entry with:
+     - Summary of what you did
+     - Files created (new files you added to the codebase)
+     - Files modified (existing files you changed)
+     - KB files updated (which knowledge base files you wrote to)
+     - Key decisions made (if any)
+  3. Suggest the next agent based on the workflow state
 
 ## Checkpoints
 

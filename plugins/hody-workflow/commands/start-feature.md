@@ -150,7 +150,7 @@ status: confirmed
 [Full spec content from step 7]
 ```
 
-10. **Create workflow state**: Create `.hody/state.json`:
+10. **Create workflow state and feature log**: Create `.hody/state.json`:
 
 ```json
 {
@@ -160,6 +160,7 @@ status: confirmed
   "status": "in_progress",
   "spec_confirmed": true,
   "spec_file": "spec-<slugified-feature>.md",
+  "log_file": "log-<slugified-feature>.md",
   "created_at": "<ISO 8601 UTC>",
   "updated_at": "<ISO 8601 UTC>",
   "phases": {
@@ -175,6 +176,33 @@ status: confirmed
 }
 ```
 
+Create the **feature log** file at `.hody/knowledge/log-<slugified-feature>.md`:
+
+```markdown
+---
+tags: [log, <feature-type>]
+date: <YYYY-MM-DD>
+author-agent: start-feature
+status: in_progress
+---
+
+# Feature Log: <feature title>
+
+Type: <feature-type>
+Started: <YYYY-MM-DD>
+
+## Spec
+-> spec-<slugified-feature>.md
+
+## Agent Work
+```
+
+This log file is where each agent will append its detailed work record. It tracks:
+- What each agent did (summary)
+- Files created and modified in the codebase
+- KB files updated
+- Key decisions made
+
 Also create a tracker item:
 
 ```bash
@@ -188,8 +216,10 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
 
 11. **Auto-run all agents**: Execute agents in sequence automatically. For each agent:
    - Set it as `active` in state.json, add `agent_log` entry
-   - Activate the agent (it reads profile.yaml + KB + spec file)
-   - When agent completes, update state.json (completed, output_summary, kb_files_modified)
+   - Activate the agent (it reads profile.yaml + KB + spec file + log file)
+   - When agent completes:
+     - Update state.json (completed, output_summary, kb_files_modified)
+     - Agent appends its work record to the log file (files created/modified, KB updated, decisions)
    - **Immediately** proceed to next agent — do NOT pause to ask the user
 
    **Important**: Between agents, briefly show a one-line status update so the user can follow progress:
@@ -200,6 +230,7 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
    **Parallel agents**: During BUILD phase, if both `frontend` and `backend` are present, run them in parallel.
 
 12. **Complete workflow**: After all agents finish:
+   - Finalize the feature log (append Summary section, update status to `completed`)
    - Set workflow status to `completed`
    - Show a final summary of all agent outputs
    - Update spec file status to `implemented`
@@ -250,6 +281,7 @@ KB Files Updated:
   → decisions.md
 
 Spec: .hody/knowledge/spec-<feature>.md
+Log:  .hody/knowledge/log-<feature>.md
 ```
 
 ## Notes
@@ -260,4 +292,5 @@ Spec: .hody/knowledge/spec-<feature>.md
 - SHIP phase (devops) is included only for deployment/hotfix types
 - Each agent reads the spec file + KB, so context flows naturally between agents
 - If an agent is interrupted mid-execution, use `/hody-workflow:resume` to continue — it will auto-run remaining agents since spec is already confirmed
-- Workflow state is persisted in `.hody/state.json`, spec in `.hody/knowledge/spec-*.md`
+- Workflow state is persisted in `.hody/state.json`, spec in `.hody/knowledge/spec-*.md`, log in `.hody/knowledge/log-*.md`
+- The feature log provides a complete audit trail of all work done — review it after workflow completes

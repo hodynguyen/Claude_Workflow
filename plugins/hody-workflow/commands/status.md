@@ -58,6 +58,7 @@ Active Workflow:
   Feature: [description]
   Type: [type]
   Spec: [✅ Confirmed (spec-oauth2-login.md) | ⚠️ Pending — discovery incomplete]
+  Log:  [log-oauth2-login.md | not created yet]
   Mode: [Auto-execution | Discovery — waiting for spec confirmation]
   Progress: ██████░░░░ 3/8 agents (37%)
 

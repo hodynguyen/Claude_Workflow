@@ -27,6 +27,9 @@ from state import (
     abort_workflow,
     get_next_agent,
     confirm_spec,
+    create_feature_log,
+    append_feature_log,
+    finalize_feature_log,
 )
 
 
@@ -54,6 +57,7 @@ class TestInitWorkflow(unittest.TestCase):
         self.assertEqual(state["status"], "in_progress")
         self.assertFalse(state["spec_confirmed"])
         self.assertIsNone(state["spec_file"])
+        self.assertEqual(state["log_file"], "log-add-user-auth.md")
         self.assertEqual(state["phase_order"], ["THINK", "BUILD", "VERIFY", "SHIP"])
         self.assertEqual(state["phases"]["THINK"]["agents"], ["researcher", "architect"])
         self.assertEqual(state["phases"]["THINK"]["completed"], [])
@@ -364,6 +368,147 @@ class TestConfirmSpec(unittest.TestCase):
         self.assertEqual(state["type"], "bug-fix")
         self.assertEqual(state["status"], "in_progress")
         self.assertEqual(state["phases"]["THINK"]["active"], "researcher")
+
+
+class TestFeatureLog(unittest.TestCase):
+    """Test feature log creation, appending, and finalization."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = self.tmpdir.name
+        os.makedirs(os.path.join(self.cwd, ".hody", "knowledge"), exist_ok=True)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_init_workflow_creates_log_file_field(self):
+        """init_workflow auto-generates log_file from feature name."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(self.cwd, "OAuth2 Login", "new-feature", phases)
+        self.assertEqual(state["log_file"], "log-oauth2-login.md")
+
+    def test_init_workflow_custom_log_file(self):
+        """init_workflow accepts custom log_file."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(self.cwd, "Test", "bug-fix", phases,
+                              log_file="log-custom.md")
+        self.assertEqual(state["log_file"], "log-custom.md")
+
+    def test_create_feature_log(self):
+        """Creates log file with correct structure."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "OAuth2 Login", "new-feature", phases,
+                      spec_file="spec-oauth2-login.md")
+        path = create_feature_log(self.cwd, "OAuth2 Login", "new-feature",
+                                  spec_file="spec-oauth2-login.md",
+                                  log_file="log-oauth2-login.md")
+
+        self.assertTrue(os.path.isfile(path))
+        with open(path) as f:
+            content = f.read()
+
+        self.assertIn("# Feature Log: OAuth2 Login", content)
+        self.assertIn("tags: [log, new-feature]", content)
+        self.assertIn("status: in_progress", content)
+        self.assertIn("## Spec", content)
+        self.assertIn("spec-oauth2-login.md", content)
+        self.assertIn("## Agent Work", content)
+
+    def test_append_feature_log(self):
+        """Appends structured agent entry to log."""
+        phases = {"THINK": ["researcher"], "BUILD": ["backend"]}
+        init_workflow(self.cwd, "Test Feature", "new-feature", phases)
+        create_feature_log(self.cwd, "Test Feature", "new-feature",
+                           log_file="log-test-feature.md")
+
+        append_feature_log(
+            self.cwd, "researcher", "THINK",
+            summary="Researched OAuth2 providers",
+            files_created=["docs/oauth2-research.md"],
+            kb_updated=["decisions.md"],
+            decisions=["Use Auth0 for managed auth"],
+            log_file="log-test-feature.md",
+        )
+
+        path = os.path.join(self.cwd, ".hody", "knowledge", "log-test-feature.md")
+        with open(path) as f:
+            content = f.read()
+
+        self.assertIn("### researcher (THINK)", content)
+        self.assertIn("Researched OAuth2 providers", content)
+        self.assertIn("`docs/oauth2-research.md`", content)
+        self.assertIn("decisions.md", content)
+        self.assertIn("Decision: Use Auth0", content)
+
+    def test_append_multiple_agents(self):
+        """Multiple agents append in order."""
+        phases = {"THINK": ["researcher", "architect"]}
+        init_workflow(self.cwd, "Multi", "new-feature", phases)
+        create_feature_log(self.cwd, "Multi", "new-feature",
+                           log_file="log-multi.md")
+
+        append_feature_log(self.cwd, "researcher", "THINK",
+                           summary="Did research", log_file="log-multi.md")
+        append_feature_log(self.cwd, "architect", "THINK",
+                           summary="Designed system", log_file="log-multi.md")
+
+        path = os.path.join(self.cwd, ".hody", "knowledge", "log-multi.md")
+        with open(path) as f:
+            content = f.read()
+
+        # researcher appears before architect
+        r_pos = content.index("### researcher")
+        a_pos = content.index("### architect")
+        self.assertLess(r_pos, a_pos)
+
+    def test_finalize_feature_log(self):
+        """Adds summary section and updates status."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Final", "new-feature", phases)
+        create_feature_log(self.cwd, "Final", "new-feature",
+                           log_file="log-final.md")
+
+        # Simulate agent completing
+        start_agent(self.cwd, "researcher")
+        complete_agent(self.cwd, "researcher", "Done research", ["decisions.md"])
+
+        finalize_feature_log(self.cwd, "log-final.md")
+
+        path = os.path.join(self.cwd, ".hody", "knowledge", "log-final.md")
+        with open(path) as f:
+            content = f.read()
+
+        self.assertIn("## Summary", content)
+        self.assertIn("1 agents completed", content)
+        self.assertIn("**researcher** (THINK): Done research", content)
+        self.assertIn("status: completed", content)
+        self.assertNotIn("status: in_progress", content)
+
+    def test_complete_workflow_finalizes_log(self):
+        """complete_workflow auto-finalizes the feature log."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Auto Final", "new-feature", phases)
+        create_feature_log(self.cwd, "Auto Final", "new-feature",
+                           log_file="log-auto-final.md")
+
+        start_agent(self.cwd, "researcher")
+        complete_agent(self.cwd, "researcher", "All done")
+        complete_workflow(self.cwd)
+
+        path = os.path.join(self.cwd, ".hody", "knowledge", "log-auto-final.md")
+        with open(path) as f:
+            content = f.read()
+
+        self.assertIn("## Summary", content)
+        self.assertIn("status: completed", content)
+
+    def test_append_without_log_file_silent(self):
+        """append_feature_log silently skips if no log file exists."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "No Log", "new-feature", phases)
+        # Don't create log file — should not error
+        append_feature_log(self.cwd, "researcher", "THINK",
+                           summary="test", log_file="nonexistent.md")
 
 
 class TestCheckpointIntegration(unittest.TestCase):
