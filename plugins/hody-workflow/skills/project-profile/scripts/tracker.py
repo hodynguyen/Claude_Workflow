@@ -836,13 +836,17 @@ def main():
     parser = argparse.ArgumentParser(
         description="Hody Workflow Interaction Tracker"
     )
+    # Shared --cwd argument available on all subcommands via parent parser
+    cwd_parent = argparse.ArgumentParser(add_help=False)
+    cwd_parent.add_argument("--cwd", default=None,
+                            help="Project directory (defaults to current directory)")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # init
-    subparsers.add_parser("init", help="Initialize tracker database")
+    subparsers.add_parser("init", parents=[cwd_parent], help="Initialize tracker database")
 
     # create
-    create_p = subparsers.add_parser("create", help="Create a new item")
+    create_p = subparsers.add_parser("create", parents=[cwd_parent], help="Create a new item")
     create_p.add_argument("--type", required=True,
                           choices=["task", "investigation", "question",
                                    "discussion", "maintenance"])
@@ -855,18 +859,18 @@ def main():
     create_p.add_argument("--workflow-id", default=None)
 
     # update (status transition)
-    update_p = subparsers.add_parser("update", help="Update item status")
+    update_p = subparsers.add_parser("update", parents=[cwd_parent], help="Update item status")
     update_p.add_argument("id", help="Item ID")
     update_p.add_argument("--status", required=True, help="New status")
     update_p.add_argument("--reason", default="", help="Reason for transition")
 
     # note
-    note_p = subparsers.add_parser("note", help="Add notes to an item")
+    note_p = subparsers.add_parser("note", parents=[cwd_parent], help="Add notes to an item")
     note_p.add_argument("id", help="Item ID")
     note_p.add_argument("text", help="Note text")
 
     # search
-    search_p = subparsers.add_parser("search", help="Search items")
+    search_p = subparsers.add_parser("search", parents=[cwd_parent], help="Search items")
     search_p.add_argument("--type", default=None,
                           choices=["task", "investigation", "question",
                                    "discussion", "maintenance"])
@@ -877,25 +881,25 @@ def main():
     search_p.add_argument("--limit", type=int, default=20)
 
     # list
-    list_p = subparsers.add_parser("list", help="List items")
+    list_p = subparsers.add_parser("list", parents=[cwd_parent], help="List items")
     list_p.add_argument("--active", action="store_true",
                         help="Show only active (non-terminal) items")
     list_p.add_argument("--all", action="store_true",
                         help="Show all items (no limit)")
 
     # history
-    history_p = subparsers.add_parser("history", help="Show item history")
+    history_p = subparsers.add_parser("history", parents=[cwd_parent], help="Show item history")
     history_p.add_argument("id", help="Item ID")
 
     # context
-    subparsers.add_parser("context",
+    subparsers.add_parser("context", parents=[cwd_parent],
                           help="Show session context (active items, warnings, recent completed)")
 
     # migrate
-    subparsers.add_parser("migrate", help="Import state.json into tracker")
+    subparsers.add_parser("migrate", parents=[cwd_parent], help="Import state.json into tracker")
 
     # checkpoint-save
-    chk_save_p = subparsers.add_parser("checkpoint-save",
+    chk_save_p = subparsers.add_parser("checkpoint-save", parents=[cwd_parent],
                                         help="Save agent checkpoint")
     chk_save_p.add_argument("--workflow-id", required=True)
     chk_save_p.add_argument("--agent", required=True)
@@ -908,25 +912,25 @@ def main():
     chk_save_p.add_argument("--resume-hint", default="")
 
     # checkpoint-load
-    chk_load_p = subparsers.add_parser("checkpoint-load",
+    chk_load_p = subparsers.add_parser("checkpoint-load", parents=[cwd_parent],
                                         help="Load agent checkpoint")
     chk_load_p.add_argument("--workflow-id", required=True)
     chk_load_p.add_argument("--agent", required=True)
 
     # checkpoint-list
-    chk_list_p = subparsers.add_parser("checkpoint-list",
+    chk_list_p = subparsers.add_parser("checkpoint-list", parents=[cwd_parent],
                                         help="List all checkpoints for a workflow")
     chk_list_p.add_argument("--workflow-id", required=True)
 
     # checkpoint-clear
-    chk_clear_p = subparsers.add_parser("checkpoint-clear",
+    chk_clear_p = subparsers.add_parser("checkpoint-clear", parents=[cwd_parent],
                                          help="Clear agent checkpoint")
     chk_clear_p.add_argument("--workflow-id", required=True)
     chk_clear_p.add_argument("--agent", default=None,
                              help="Agent name (omit to clear all)")
 
     args = parser.parse_args()
-    cwd = os.getcwd()
+    cwd = args.cwd if args.cwd else os.getcwd()
 
     if args.command is None:
         parser.print_help()
