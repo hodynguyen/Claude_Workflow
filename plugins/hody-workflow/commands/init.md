@@ -6,6 +6,14 @@ description: Initialize hody workflow for the current project. Detects tech stac
 
 Initialize Hody Workflow for the current project.
 
+## Prerequisites — Root Directory Check
+
+**CRITICAL**: Before doing anything, verify that `.hody/` will be created at the **project root directory** — the directory where the user launched Claude Code (the initial working directory of the session).
+
+**How to determine the root directory**: Use the current working directory (`.`). Do NOT `cd` into a subdirectory or microservice before running init. If the project is a monorepo or multi-service repo (e.g., contains multiple `*-microservice/` or `*-service/` directories), `.hody/` MUST be placed at the top-level root, NOT inside any individual service.
+
+**Validation**: Run `pwd` and confirm the output matches the project root. If the current directory is a subdirectory (e.g., `/project/24K/24k-email-microservice`), navigate back to the root (e.g., `/project/24K/`) before proceeding.
+
 ## Steps
 
 1. **Detect tech stack**: Run the project-profile skill to scan the project and generate `.hody/profile.yaml`
