@@ -560,6 +560,176 @@ def get_item_history(cwd, item_id):
 
 
 # =====================================================================
+# Checkpoints
+# =====================================================================
+
+def save_checkpoint(cwd, workflow_id, agent, phase,
+                    total_items=0, completed_items=0, items=None,
+                    partial_output="", resume_hint=""):
+    """Save or update an agent checkpoint.
+
+    Upserts by (workflow_id, agent) — each agent has at most one
+    active checkpoint per workflow. Agents should call this after
+    completing each unit of work so progress survives interruptions.
+
+    Args:
+        cwd: Project root directory.
+        workflow_id: The workflow ID from state.json.
+        agent: Agent name (e.g. "code-reviewer").
+        phase: Phase name (e.g. "VERIFY").
+        total_items: Total work items for this agent.
+        completed_items: How many items are done.
+        items: List of dicts [{id, status, summary}, ...].
+        partial_output: Accumulated output text so far.
+        resume_hint: Human-readable hint for resuming.
+
+    Returns:
+        The checkpoint dict.
+    """
+    schema.init_db(cwd)
+    conn = schema.get_db(cwd)
+    now = _now()
+
+    items_json = json.dumps(items or [])
+    checkpoint_id = f"chk_{workflow_id}_{agent}"
+
+    conn.execute(
+        """INSERT INTO checkpoints
+           (id, workflow_id, agent, phase, updated_at,
+            total_items, completed_items, items_json,
+            partial_output, resume_hint)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(workflow_id, agent) DO UPDATE SET
+            phase = excluded.phase,
+            updated_at = excluded.updated_at,
+            total_items = excluded.total_items,
+            completed_items = excluded.completed_items,
+            items_json = excluded.items_json,
+            partial_output = excluded.partial_output,
+            resume_hint = excluded.resume_hint""",
+        (checkpoint_id, workflow_id, agent, phase, now,
+         total_items, completed_items, items_json,
+         partial_output, resume_hint)
+    )
+    conn.commit()
+
+    result = {
+        "id": checkpoint_id,
+        "workflow_id": workflow_id,
+        "agent": agent,
+        "phase": phase,
+        "updated_at": now,
+        "total_items": total_items,
+        "completed_items": completed_items,
+        "items": items or [],
+        "partial_output": partial_output,
+        "resume_hint": resume_hint,
+    }
+    conn.close()
+    return result
+
+
+def load_checkpoint(cwd, workflow_id, agent):
+    """Load the checkpoint for a specific agent in a workflow.
+
+    Returns:
+        Checkpoint dict or None if no checkpoint exists.
+    """
+    try:
+        conn = schema.get_db(cwd)
+    except FileNotFoundError:
+        return None
+
+    row = conn.execute(
+        "SELECT * FROM checkpoints WHERE workflow_id = ? AND agent = ?",
+        (workflow_id, agent)
+    ).fetchone()
+
+    if row is None:
+        conn.close()
+        return None
+
+    result = dict(row)
+    try:
+        result["items"] = json.loads(result.pop("items_json", "[]"))
+    except (json.JSONDecodeError, TypeError):
+        result["items"] = []
+    conn.close()
+    return result
+
+
+def load_workflow_checkpoints(cwd, workflow_id):
+    """Load all checkpoints for a workflow.
+
+    Returns:
+        List of checkpoint dicts.
+    """
+    try:
+        conn = schema.get_db(cwd)
+    except FileNotFoundError:
+        return []
+
+    rows = conn.execute(
+        "SELECT * FROM checkpoints WHERE workflow_id = ? ORDER BY updated_at DESC",
+        (workflow_id,)
+    ).fetchall()
+
+    results = []
+    for row in rows:
+        d = dict(row)
+        try:
+            d["items"] = json.loads(d.pop("items_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            d["items"] = []
+        results.append(d)
+
+    conn.close()
+    return results
+
+
+def clear_checkpoint(cwd, workflow_id, agent):
+    """Remove checkpoint for a completed agent.
+
+    Returns:
+        True if a checkpoint was deleted, False if none existed.
+    """
+    try:
+        conn = schema.get_db(cwd)
+    except FileNotFoundError:
+        return False
+
+    cursor = conn.execute(
+        "DELETE FROM checkpoints WHERE workflow_id = ? AND agent = ?",
+        (workflow_id, agent)
+    )
+    conn.commit()
+    deleted = cursor.rowcount > 0
+    conn.close()
+    return deleted
+
+
+def clear_workflow_checkpoints(cwd, workflow_id):
+    """Remove all checkpoints for a workflow (e.g. on complete/abort).
+
+    Returns:
+        Number of checkpoints deleted.
+    """
+    try:
+        conn = schema.get_db(cwd)
+    except FileNotFoundError:
+        return 0
+
+    cursor = conn.execute(
+        "DELETE FROM checkpoints WHERE workflow_id = ?",
+        (workflow_id,)
+    )
+    conn.commit()
+    count = cursor.rowcount
+    conn.close()
+    return count
+
+
+# =====================================================================
 # Workflow Sync
 # =====================================================================
 
@@ -724,6 +894,37 @@ def main():
     # migrate
     subparsers.add_parser("migrate", help="Import state.json into tracker")
 
+    # checkpoint-save
+    chk_save_p = subparsers.add_parser("checkpoint-save",
+                                        help="Save agent checkpoint")
+    chk_save_p.add_argument("--workflow-id", required=True)
+    chk_save_p.add_argument("--agent", required=True)
+    chk_save_p.add_argument("--phase", required=True)
+    chk_save_p.add_argument("--total-items", type=int, default=0)
+    chk_save_p.add_argument("--completed-items", type=int, default=0)
+    chk_save_p.add_argument("--items-json", default="[]",
+                            help="JSON array of {id, status, summary}")
+    chk_save_p.add_argument("--partial-output", default="")
+    chk_save_p.add_argument("--resume-hint", default="")
+
+    # checkpoint-load
+    chk_load_p = subparsers.add_parser("checkpoint-load",
+                                        help="Load agent checkpoint")
+    chk_load_p.add_argument("--workflow-id", required=True)
+    chk_load_p.add_argument("--agent", required=True)
+
+    # checkpoint-list
+    chk_list_p = subparsers.add_parser("checkpoint-list",
+                                        help="List all checkpoints for a workflow")
+    chk_list_p.add_argument("--workflow-id", required=True)
+
+    # checkpoint-clear
+    chk_clear_p = subparsers.add_parser("checkpoint-clear",
+                                         help="Clear agent checkpoint")
+    chk_clear_p.add_argument("--workflow-id", required=True)
+    chk_clear_p.add_argument("--agent", default=None,
+                             help="Agent name (omit to clear all)")
+
     args = parser.parse_args()
     cwd = os.getcwd()
 
@@ -813,6 +1014,44 @@ def main():
             _output(result)
         else:
             _output({"status": "no_state_json", "message": "No state.json found to migrate"})
+
+    elif args.command == "checkpoint-save":
+        try:
+            items = json.loads(args.items_json)
+        except json.JSONDecodeError:
+            items = []
+        result = save_checkpoint(
+            cwd,
+            workflow_id=args.workflow_id,
+            agent=args.agent,
+            phase=args.phase,
+            total_items=args.total_items,
+            completed_items=args.completed_items,
+            items=items,
+            partial_output=args.partial_output,
+            resume_hint=args.resume_hint,
+        )
+        _output(result)
+
+    elif args.command == "checkpoint-load":
+        result = load_checkpoint(cwd, args.workflow_id, args.agent)
+        if result:
+            _output(result)
+        else:
+            _output({"status": "no_checkpoint",
+                      "message": f"No checkpoint for {args.agent} in {args.workflow_id}"})
+
+    elif args.command == "checkpoint-list":
+        results = load_workflow_checkpoints(cwd, args.workflow_id)
+        _output(results)
+
+    elif args.command == "checkpoint-clear":
+        if args.agent:
+            deleted = clear_checkpoint(cwd, args.workflow_id, args.agent)
+            _output({"deleted": deleted, "agent": args.agent})
+        else:
+            count = clear_workflow_checkpoints(cwd, args.workflow_id)
+            _output({"deleted_count": count, "workflow_id": args.workflow_id})
 
 
 if __name__ == "__main__":

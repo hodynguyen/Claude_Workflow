@@ -157,6 +157,23 @@ CREATE INDEX IF NOT EXISTS idx_item_tags_tag ON item_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_status_log_item ON status_log(item_id);
 CREATE INDEX IF NOT EXISTS idx_status_log_time ON status_log(changed_at);
 CREATE INDEX IF NOT EXISTS idx_item_relations_to ON item_relations(to_item_id);
+
+CREATE TABLE IF NOT EXISTS checkpoints (
+    id          TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    agent       TEXT NOT NULL,
+    phase       TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    total_items INTEGER DEFAULT 0,
+    completed_items INTEGER DEFAULT 0,
+    items_json  TEXT DEFAULT '[]',
+    partial_output TEXT DEFAULT '',
+    resume_hint TEXT DEFAULT ''
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_checkpoints_workflow_agent
+    ON checkpoints(workflow_id, agent);
+CREATE INDEX IF NOT EXISTS idx_checkpoints_workflow ON checkpoints(workflow_id);
 """
 
 

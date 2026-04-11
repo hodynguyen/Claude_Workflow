@@ -107,10 +107,42 @@ def _phase_has_progress(state, phase):
     return len(p["completed"]) > 0 or len(p["skipped"]) == len(p["agents"])
 
 
+def _load_checkpoint(cwd, workflow_id, agent_name):
+    """Try to load a checkpoint for this agent. Returns dict or None."""
+    try:
+        from . import tracker as tracker_module
+    except ImportError:
+        try:
+            import tracker as tracker_module
+        except ImportError:
+            return None
+    try:
+        return tracker_module.load_checkpoint(cwd, workflow_id, agent_name)
+    except Exception:
+        return None
+
+
+def _clear_checkpoint(cwd, workflow_id, agent_name):
+    """Try to clear the checkpoint for a completed agent."""
+    try:
+        from . import tracker as tracker_module
+    except ImportError:
+        try:
+            import tracker as tracker_module
+        except ImportError:
+            return
+    try:
+        tracker_module.clear_checkpoint(cwd, workflow_id, agent_name)
+    except Exception:
+        pass
+
+
 def start_agent(cwd, agent_name):
     """Set agent as active, log start time.
 
-    Returns updated state. Prints warning if phase ordering is advisory-violated.
+    Returns (updated_state, checkpoint_or_none). If a checkpoint exists
+    for this agent, it is returned so the caller can resume from where
+    the agent left off.
     """
     state = load_state(cwd)
     if state is None:
@@ -147,13 +179,18 @@ def start_agent(cwd, agent_name):
         "kb_files_modified": [],
     })
 
-    return _write_state(cwd, state)
+    updated_state = _write_state(cwd, state)
+
+    # Check for existing checkpoint (agent was interrupted before)
+    checkpoint = _load_checkpoint(cwd, state["workflow_id"], agent_name)
+
+    return updated_state, checkpoint
 
 
 def complete_agent(cwd, agent_name, output_summary="", kb_files_modified=None):
     """Mark agent as completed, log end time + summary.
 
-    Auto-advances phase if all agents in current phase are done.
+    Clears the agent's checkpoint since work is done.
     """
     state = load_state(cwd)
     if state is None:
@@ -181,6 +218,9 @@ def complete_agent(cwd, agent_name, output_summary="", kb_files_modified=None):
             entry["kb_files_modified"] = kb_files_modified or []
             break
 
+    # Clear checkpoint — agent is done, no need to keep it
+    _clear_checkpoint(cwd, state["workflow_id"], agent_name)
+
     return _write_state(cwd, state)
 
 
@@ -205,23 +245,40 @@ def skip_agent(cwd, agent_name):
     return _write_state(cwd, state)
 
 
+def _clear_all_checkpoints(cwd, workflow_id):
+    """Clear all checkpoints for a workflow."""
+    try:
+        from . import tracker as tracker_module
+    except ImportError:
+        try:
+            import tracker as tracker_module
+        except ImportError:
+            return
+    try:
+        tracker_module.clear_workflow_checkpoints(cwd, workflow_id)
+    except Exception:
+        pass
+
+
 def complete_workflow(cwd):
-    """Set status = 'completed', record end time."""
+    """Set status = 'completed', record end time. Clears all checkpoints."""
     state = load_state(cwd)
     if state is None:
         raise FileNotFoundError("No active workflow — .hody/state.json not found")
 
     state["status"] = "completed"
+    _clear_all_checkpoints(cwd, state["workflow_id"])
     return _write_state(cwd, state)
 
 
 def abort_workflow(cwd):
-    """Set status = 'aborted'."""
+    """Set status = 'aborted'. Clears all checkpoints."""
     state = load_state(cwd)
     if state is None:
         raise FileNotFoundError("No active workflow — .hody/state.json not found")
 
     state["status"] = "aborted"
+    _clear_all_checkpoints(cwd, state["workflow_id"])
     return _write_state(cwd, state)
 
 

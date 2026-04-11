@@ -1166,5 +1166,283 @@ class TestFormatAge(unittest.TestCase):
         self.assertEqual(awareness._format_age(90), "3mo")
 
 
+# =====================================================================
+# Checkpoint tests
+# =====================================================================
+
+
+class TestCheckpointSchema(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_checkpoints_table_created(self):
+        """init_db creates the checkpoints table."""
+        schema.init_db(self.tmpdir)
+        db = os.path.join(self.tmpdir, ".hody", "tracker.db")
+        conn = sqlite3.connect(db)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='checkpoints'"
+        )
+        self.assertIsNotNone(cursor.fetchone())
+        conn.close()
+
+    def test_checkpoints_unique_index(self):
+        """Unique index on (workflow_id, agent) prevents duplicates."""
+        schema.init_db(self.tmpdir)
+        db = os.path.join(self.tmpdir, ".hody", "tracker.db")
+        conn = sqlite3.connect(db)
+        conn.execute(
+            "INSERT INTO checkpoints (id, workflow_id, agent, phase, updated_at) "
+            "VALUES ('c1', 'wf1', 'backend', 'BUILD', '2026-01-01T00:00:00Z')"
+        )
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO checkpoints (id, workflow_id, agent, phase, updated_at) "
+                "VALUES ('c2', 'wf1', 'backend', 'BUILD', '2026-01-01T00:00:00Z')"
+            )
+        conn.close()
+
+
+class TestSaveCheckpoint(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_save_checkpoint_basic(self):
+        """save_checkpoint creates a checkpoint record."""
+        result = tracker_mod.save_checkpoint(
+            self.tmpdir,
+            workflow_id="feat-auth-20260411",
+            agent="code-reviewer",
+            phase="VERIFY",
+            total_items=10,
+            completed_items=6,
+            items=[{"id": "auth.py", "status": "done", "summary": "OK"}],
+            partial_output="Reviewed 6 files",
+            resume_hint="Continue from models/order.py",
+        )
+        self.assertEqual(result["workflow_id"], "feat-auth-20260411")
+        self.assertEqual(result["agent"], "code-reviewer")
+        self.assertEqual(result["total_items"], 10)
+        self.assertEqual(result["completed_items"], 6)
+        self.assertEqual(len(result["items"]), 1)
+        self.assertEqual(result["resume_hint"], "Continue from models/order.py")
+
+    def test_save_checkpoint_upsert(self):
+        """save_checkpoint updates existing checkpoint for same agent."""
+        tracker_mod.save_checkpoint(
+            self.tmpdir, "wf1", "backend", "BUILD",
+            total_items=5, completed_items=2,
+            resume_hint="item 3",
+        )
+        result = tracker_mod.save_checkpoint(
+            self.tmpdir, "wf1", "backend", "BUILD",
+            total_items=5, completed_items=4,
+            resume_hint="item 5",
+        )
+        self.assertEqual(result["completed_items"], 4)
+        self.assertEqual(result["resume_hint"], "item 5")
+
+        # Verify only one record exists
+        loaded = tracker_mod.load_checkpoint(self.tmpdir, "wf1", "backend")
+        self.assertEqual(loaded["completed_items"], 4)
+
+
+class TestLoadCheckpoint(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_load_nonexistent(self):
+        """load_checkpoint returns None when no checkpoint exists."""
+        result = tracker_mod.load_checkpoint(self.tmpdir, "wf1", "backend")
+        self.assertIsNone(result)
+
+    def test_load_existing(self):
+        """load_checkpoint returns saved checkpoint data."""
+        items = [
+            {"id": "file1.py", "status": "done", "summary": "OK"},
+            {"id": "file2.py", "status": "pending", "summary": ""},
+        ]
+        tracker_mod.save_checkpoint(
+            self.tmpdir, "wf1", "code-reviewer", "VERIFY",
+            total_items=2, completed_items=1,
+            items=items,
+            partial_output="## Review\n- file1.py: OK",
+            resume_hint="Review file2.py next",
+        )
+        loaded = tracker_mod.load_checkpoint(self.tmpdir, "wf1", "code-reviewer")
+        self.assertIsNotNone(loaded)
+        self.assertEqual(loaded["total_items"], 2)
+        self.assertEqual(loaded["completed_items"], 1)
+        self.assertEqual(len(loaded["items"]), 2)
+        self.assertEqual(loaded["items"][0]["status"], "done")
+        self.assertEqual(loaded["partial_output"], "## Review\n- file1.py: OK")
+        self.assertEqual(loaded["resume_hint"], "Review file2.py next")
+
+    def test_load_no_db(self):
+        """load_checkpoint returns None when tracker.db doesn't exist."""
+        empty_dir = tempfile.mkdtemp()
+        result = tracker_mod.load_checkpoint(empty_dir, "wf1", "backend")
+        self.assertIsNone(result)
+        shutil.rmtree(empty_dir)
+
+
+class TestLoadWorkflowCheckpoints(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_load_multiple(self):
+        """load_workflow_checkpoints returns all checkpoints for a workflow."""
+        tracker_mod.save_checkpoint(self.tmpdir, "wf1", "backend", "BUILD")
+        tracker_mod.save_checkpoint(self.tmpdir, "wf1", "frontend", "BUILD")
+        tracker_mod.save_checkpoint(self.tmpdir, "wf2", "backend", "BUILD")
+
+        results = tracker_mod.load_workflow_checkpoints(self.tmpdir, "wf1")
+        self.assertEqual(len(results), 2)
+        agents = {r["agent"] for r in results}
+        self.assertEqual(agents, {"backend", "frontend"})
+
+    def test_empty_workflow(self):
+        """load_workflow_checkpoints returns empty list for unknown workflow."""
+        schema.init_db(self.tmpdir)
+        results = tracker_mod.load_workflow_checkpoints(self.tmpdir, "nonexistent")
+        self.assertEqual(results, [])
+
+
+class TestClearCheckpoint(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def test_clear_existing(self):
+        """clear_checkpoint removes the checkpoint and returns True."""
+        tracker_mod.save_checkpoint(self.tmpdir, "wf1", "backend", "BUILD")
+        result = tracker_mod.clear_checkpoint(self.tmpdir, "wf1", "backend")
+        self.assertTrue(result)
+
+        loaded = tracker_mod.load_checkpoint(self.tmpdir, "wf1", "backend")
+        self.assertIsNone(loaded)
+
+    def test_clear_nonexistent(self):
+        """clear_checkpoint returns False when no checkpoint exists."""
+        schema.init_db(self.tmpdir)
+        result = tracker_mod.clear_checkpoint(self.tmpdir, "wf1", "backend")
+        self.assertFalse(result)
+
+    def test_clear_workflow_checkpoints(self):
+        """clear_workflow_checkpoints removes all checkpoints for a workflow."""
+        tracker_mod.save_checkpoint(self.tmpdir, "wf1", "backend", "BUILD")
+        tracker_mod.save_checkpoint(self.tmpdir, "wf1", "frontend", "BUILD")
+        tracker_mod.save_checkpoint(self.tmpdir, "wf2", "backend", "BUILD")
+
+        count = tracker_mod.clear_workflow_checkpoints(self.tmpdir, "wf1")
+        self.assertEqual(count, 2)
+
+        # wf1 checkpoints gone
+        self.assertEqual(tracker_mod.load_workflow_checkpoints(self.tmpdir, "wf1"), [])
+        # wf2 still exists
+        self.assertEqual(len(tracker_mod.load_workflow_checkpoints(self.tmpdir, "wf2")), 1)
+
+
+class TestCheckpointCLI(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.tmpdir, ".hody"), exist_ok=True)
+        schema.init_db(self.tmpdir)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def _run_cli(self, *args):
+        tracker_py = os.path.join(SCRIPTS_DIR, "tracker.py")
+        result = subprocess.run(
+            [sys.executable, tracker_py] + list(args),
+            capture_output=True, text=True, cwd=self.tmpdir
+        )
+        return result
+
+    def test_checkpoint_save_and_load(self):
+        """CLI checkpoint-save and checkpoint-load round-trip."""
+        result = self._run_cli(
+            "checkpoint-save",
+            "--workflow-id", "wf-test",
+            "--agent", "backend",
+            "--phase", "BUILD",
+            "--total-items", "5",
+            "--completed-items", "3",
+            "--resume-hint", "Continue from item 4",
+        )
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["agent"], "backend")
+        self.assertEqual(data["completed_items"], 3)
+
+        result = self._run_cli(
+            "checkpoint-load",
+            "--workflow-id", "wf-test",
+            "--agent", "backend",
+        )
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["resume_hint"], "Continue from item 4")
+
+    def test_checkpoint_load_nonexistent(self):
+        """CLI checkpoint-load returns no_checkpoint message."""
+        result = self._run_cli(
+            "checkpoint-load",
+            "--workflow-id", "wf-test",
+            "--agent", "nonexistent",
+        )
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["status"], "no_checkpoint")
+
+    def test_checkpoint_list(self):
+        """CLI checkpoint-list shows all checkpoints for a workflow."""
+        self._run_cli("checkpoint-save", "--workflow-id", "wf1",
+                       "--agent", "a1", "--phase", "BUILD")
+        self._run_cli("checkpoint-save", "--workflow-id", "wf1",
+                       "--agent", "a2", "--phase", "VERIFY")
+        result = self._run_cli("checkpoint-list", "--workflow-id", "wf1")
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertEqual(len(data), 2)
+
+    def test_checkpoint_clear_single(self):
+        """CLI checkpoint-clear with --agent clears one checkpoint."""
+        self._run_cli("checkpoint-save", "--workflow-id", "wf1",
+                       "--agent", "backend", "--phase", "BUILD")
+        result = self._run_cli("checkpoint-clear", "--workflow-id", "wf1",
+                                "--agent", "backend")
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertTrue(data["deleted"])
+
+    def test_checkpoint_clear_all(self):
+        """CLI checkpoint-clear without --agent clears all."""
+        self._run_cli("checkpoint-save", "--workflow-id", "wf1",
+                       "--agent", "a1", "--phase", "BUILD")
+        self._run_cli("checkpoint-save", "--workflow-id", "wf1",
+                       "--agent", "a2", "--phase", "VERIFY")
+        result = self._run_cli("checkpoint-clear", "--workflow-id", "wf1")
+        self.assertEqual(result.returncode, 0)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["deleted_count"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

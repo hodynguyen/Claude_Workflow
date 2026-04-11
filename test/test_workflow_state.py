@@ -125,7 +125,8 @@ class TestStartAgent(unittest.TestCase):
 
     def test_start_agent(self):
         """Sets active agent and logs start time."""
-        state = start_agent(self.cwd, "researcher")
+        state, checkpoint = start_agent(self.cwd, "researcher")
+        self.assertIsNone(checkpoint)
         self.assertEqual(state["phases"]["THINK"]["active"], "researcher")
         self.assertEqual(len(state["agent_log"]), 1)
         self.assertEqual(state["agent_log"][0]["agent"], "researcher")
@@ -309,6 +310,113 @@ class TestWorkflowLifecycle(unittest.TestCase):
         state = complete_workflow(self.cwd)
         self.assertEqual(state["status"], "completed")
         self.assertEqual(len(state["agent_log"]), 2)
+
+
+class TestCheckpointIntegration(unittest.TestCase):
+    """Test checkpoint integration with state.py lifecycle."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = self.tmpdir.name
+        os.makedirs(os.path.join(self.cwd, ".hody"), exist_ok=True)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _init_tracker(self):
+        """Initialize tracker DB so checkpoints work."""
+        import tracker_schema
+        tracker_schema.init_db(self.cwd)
+
+    def test_start_agent_returns_none_checkpoint_without_db(self):
+        """start_agent returns None checkpoint when tracker.db doesn't exist."""
+        init_workflow(self.cwd, "Test", "new-feature", {"THINK": ["researcher"]})
+        state, checkpoint = start_agent(self.cwd, "researcher")
+        self.assertIsNone(checkpoint)
+
+    def test_start_agent_returns_existing_checkpoint(self):
+        """start_agent returns checkpoint data when one exists."""
+        self._init_tracker()
+        import tracker as tracker_mod
+
+        wf_state = init_workflow(self.cwd, "Test", "new-feature", {
+            "THINK": ["researcher"],
+            "BUILD": ["backend"],
+        })
+        wf_id = wf_state["workflow_id"]
+
+        # Save a checkpoint as if backend was interrupted
+        tracker_mod.save_checkpoint(
+            self.cwd, wf_id, "backend", "BUILD",
+            total_items=5, completed_items=3,
+            resume_hint="Continue from endpoint 4",
+        )
+
+        # Start agent — should return the checkpoint
+        start_agent(self.cwd, "researcher")
+        complete_agent(self.cwd, "researcher")
+        state, checkpoint = start_agent(self.cwd, "backend")
+        self.assertIsNotNone(checkpoint)
+        self.assertEqual(checkpoint["completed_items"], 3)
+        self.assertEqual(checkpoint["resume_hint"], "Continue from endpoint 4")
+
+    def test_complete_agent_clears_checkpoint(self):
+        """complete_agent clears the agent's checkpoint."""
+        self._init_tracker()
+        import tracker as tracker_mod
+
+        wf_state = init_workflow(self.cwd, "Test", "new-feature", {
+            "THINK": ["researcher"],
+        })
+        wf_id = wf_state["workflow_id"]
+
+        tracker_mod.save_checkpoint(
+            self.cwd, wf_id, "researcher", "THINK",
+            total_items=3, completed_items=2,
+        )
+
+        start_agent(self.cwd, "researcher")
+        complete_agent(self.cwd, "researcher", "Done")
+
+        # Checkpoint should be gone
+        loaded = tracker_mod.load_checkpoint(self.cwd, wf_id, "researcher")
+        self.assertIsNone(loaded)
+
+    def test_complete_workflow_clears_all_checkpoints(self):
+        """complete_workflow clears all checkpoints for the workflow."""
+        self._init_tracker()
+        import tracker as tracker_mod
+
+        wf_state = init_workflow(self.cwd, "Test", "new-feature", {
+            "THINK": ["researcher"],
+            "BUILD": ["backend"],
+        })
+        wf_id = wf_state["workflow_id"]
+
+        tracker_mod.save_checkpoint(self.cwd, wf_id, "researcher", "THINK")
+        tracker_mod.save_checkpoint(self.cwd, wf_id, "backend", "BUILD")
+
+        complete_workflow(self.cwd)
+
+        results = tracker_mod.load_workflow_checkpoints(self.cwd, wf_id)
+        self.assertEqual(len(results), 0)
+
+    def test_abort_workflow_clears_all_checkpoints(self):
+        """abort_workflow clears all checkpoints."""
+        self._init_tracker()
+        import tracker as tracker_mod
+
+        wf_state = init_workflow(self.cwd, "Test", "new-feature", {
+            "THINK": ["researcher"],
+        })
+        wf_id = wf_state["workflow_id"]
+
+        tracker_mod.save_checkpoint(self.cwd, wf_id, "researcher", "THINK")
+
+        abort_workflow(self.cwd)
+
+        results = tracker_mod.load_workflow_checkpoints(self.cwd, wf_id)
+        self.assertEqual(len(results), 0)
 
 
 if __name__ == "__main__":

@@ -106,6 +106,27 @@ If `.hody/state.json` exists, read it at bootstrap to understand the current wor
   - Add an entry to `agent_log` with `completed_at`, `output_summary` (1-2 sentence summary of what you did), and `kb_files_modified` (list of KB files you updated)
 - Suggest the next agent based on the workflow state
 
+## Checkpoints
+
+When working on multi-item tasks (e.g., testing multiple API endpoints, running multiple integration scenarios), **save a checkpoint after completing each item** so progress survives interruptions (context limits, disconnects, etc.).
+
+**At the start**: If you receive checkpoint data (via `/hody-workflow:resume` or injected context), read it and continue from `resume_hint`. Skip items already marked `done` in the checkpoint.
+
+**During work**: After completing each unit of work, save a checkpoint:
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-save \
+  --workflow-id <workflow_id> \
+  --agent integration-tester \
+  --phase <current_phase> \
+  --total-items <total> \
+  --completed-items <done_count> \
+  --items-json '<JSON array of {id, status, summary}>' \
+  --partial-output '<accumulated output so far>' \
+  --resume-hint '<what to do next>'
+```
+
+**On completion**: The checkpoint is automatically cleared when the agent is marked complete in `state.json`.
+
 ## Collaboration
 After writing tests, suggest the user invoke the next appropriate agent:
 - After integration tests pass → suggest **code-reviewer** for final review
