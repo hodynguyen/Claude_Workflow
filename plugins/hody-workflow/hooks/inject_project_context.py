@@ -201,6 +201,27 @@ def main():
             except Exception:
                 pass  # Don't block session on tracker error
 
+        # Inject Graphify knowledge graph summary if available
+        graph_path = os.path.join(cwd, "graphify-out", "graph.json")
+        if os.path.isfile(graph_path):
+            try:
+                graph_size = os.path.getsize(graph_path)
+                if graph_size <= 10 * 1024 * 1024:  # Skip if > 10 MB
+                    with open(graph_path, "r") as gf:
+                        graph_data = json.load(gf)
+                    node_count = len(graph_data.get("nodes", []))
+                    link_key = "links" if "links" in graph_data else "edges"
+                    edge_count = len(graph_data.get(link_key, []))
+                    if node_count > 0:
+                        system_msg += (
+                            f" | Graphify: {node_count} nodes, {edge_count} edges"
+                            f" in graphify-out/graph.json."
+                            f" Use Graphify MCP tools (query_graph, get_neighbors,"
+                            f" god_nodes, shortest_path) for structural code queries."
+                        )
+            except (json.JSONDecodeError, OSError, KeyError):
+                pass  # Don't block session on graph read error
+
         output = {"systemMessage": system_msg}
         print(json.dumps(output))
         sys.exit(0)

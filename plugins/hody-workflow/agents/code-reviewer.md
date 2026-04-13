@@ -91,6 +91,15 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Transition ticket status (e.g., "In Review" → "Ready for QA") after review
   - Add review summary as a comment on the Jira ticket
 
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph for structural code analysis:
+  - `get_neighbors(label="function_name")` — find all callers and dependencies of a changed function to assess blast radius
+  - `get_neighbors(label="function_name", relation_filter="calls")` — filter to only call relationships
+  - `god_nodes(top_n=10)` — identify high-coupling nodes; flag extra risk if the PR modifies a god node
+  - `query_graph(question="functions related to auth")` — explore relevant code areas via BFS/DFS graph traversal
+  - `shortest_path(source="module_a", target="module_b")` — check dependency chains; flag potential circular dependencies
+  - `graph_stats()` — get overall codebase shape (node/edge counts, confidence breakdown)
+  - Use graph tools when the change spans multiple modules or when you need to understand callers/dependencies. For single-file, single-function changes, direct code reading is sufficient.
+
 If no integrations are configured, work normally by reading code directly.
 
 ## Workflow State
