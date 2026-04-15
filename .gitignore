@@ -10,3 +10,4 @@ build/
 PROGRESS.md
 USAGE_GUIDE.md
 .venv-graphify-spike/
+graphify-out/
