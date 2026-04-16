@@ -194,8 +194,27 @@ print(json.dumps({"nodes": G.number_of_nodes(), "edges": G.number_of_edges()}))
 """
 
 
+def _rotate_previous_graph(cwd):
+    """Move existing graph.json to graph.prev.json before rebuilding.
+
+    This enables /hody-workflow:status (and graphify_diff.py) to compare
+    the new build against the previous snapshot. No-op if no prior graph
+    exists.
+    """
+    graph_path = os.path.join(cwd, "graphify-out", "graph.json")
+    prev_path = os.path.join(cwd, "graphify-out", "graph.prev.json")
+    if os.path.isfile(graph_path):
+        try:
+            if os.path.isfile(prev_path):
+                os.remove(prev_path)
+            os.rename(graph_path, prev_path)
+        except OSError:
+            pass
+
+
 def build_graph(python_path, cwd):
     """Build the Graphify knowledge graph.  Returns (nodes, edges) or None."""
+    _rotate_previous_graph(cwd)
     try:
         result = subprocess.run(
             [python_path, "-c", _BUILD_SCRIPT, cwd],
@@ -330,6 +349,42 @@ def update_gitignore(cwd):
 
 
 # ---------------------------------------------------------------------------
+# Step 7: Structural diff vs previous graph
+# ---------------------------------------------------------------------------
+
+
+def _run_diff(cwd):
+    """Run graphify_diff against graph.prev.json, print summary, write
+    new god-node entries to tech-debt.md. Silent no-op if no previous
+    snapshot exists.
+    """
+    prev = os.path.join(cwd, "graphify-out", "graph.prev.json")
+    if not os.path.isfile(prev):
+        return
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    try:
+        from graphify_diff import compute_diff, format_summary, append_tech_debt
+    except ImportError:
+        # Script layout changed or diff module missing — skip silently.
+        return
+
+    curr = os.path.join(cwd, "graphify-out", "graph.json")
+    try:
+        diff = compute_diff(prev, curr)
+    except (json.JSONDecodeError, OSError):
+        return
+
+    print("")
+    print(format_summary(diff))
+    n = append_tech_debt(cwd, diff)
+    if n > 0:
+        print("Appended %d god-node entries to tech-debt.md" % n)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -378,7 +433,10 @@ def main():
     # Step 6: Update .gitignore
     update_gitignore(cwd)
 
-    # Step 7: Summary
+    # Step 7: Run structural diff against previous snapshot (if any)
+    _run_diff(cwd)
+
+    # Step 8: Summary
     print("")
     print("Graphify setup complete!")
     print("  Graph: %d nodes, %d edges" % (nodes, edges))

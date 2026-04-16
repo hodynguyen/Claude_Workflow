@@ -81,6 +81,14 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Check epic summaries to understand feature groupings
   - Browse issue links and subtasks to map related work
 
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to ground research in the project's actual structure:
+  - `graph_stats()` — get codebase shape (size, module count, coupling) to frame "how big is this change going to be?" research questions
+  - `query_graph(question="components related to caching")` — find where a concept lives in the codebase before researching alternatives
+  - `get_community(label="module_name")` — understand a module's internal structure before researching refactor patterns for it
+  - `god_nodes(top_n=10)` — identify existing pain points; research should prioritize patterns that reduce coupling at these nodes
+  - `get_neighbors(label="library_function")` — find every usage of a library function to gauge the blast radius of swapping libraries
+  - Use graph tools when comparing implementation approaches against the project's current structure, or when sizing a refactor before recommending it. For pure external research (docs, library comparisons), direct web research is sufficient.
+
 If no integrations are configured, work normally using web search and documentation.
 
 ## Workflow State

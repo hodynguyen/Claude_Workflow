@@ -94,6 +94,15 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Create bug tickets for test failures with reproduction steps and environment details
   - Check sprint scope to prioritize which features need integration tests first
 
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to map integration boundaries and full flows:
+  - `shortest_path(source="api_handler", target="database_model")` — trace the full flow from entry point to data layer; generate tests that exercise each hop
+  - `get_neighbors(label="handler_name")` — find what an endpoint handler calls (services, repos, external APIs) to design integration setup/teardown
+  - `query_graph(question="endpoints related to user authentication")` — discover all entry points for a flow to cover
+  - `get_community(label="feature_module")` — identify the full component set involved in a feature to design end-to-end scenarios
+  - `god_nodes(top_n=10)` — high-traffic nodes likely in many flows; ensure they have integration coverage
+  - `graph_stats()` — codebase shape to gauge overall coverage
+  - Use graph tools when designing tests that span multiple modules, or when mapping all touchpoints of a business flow. For a single-endpoint happy-path test, direct code reading is sufficient.
+
 If no integrations are configured, work normally using the knowledge base and codebase.
 
 ## Workflow State

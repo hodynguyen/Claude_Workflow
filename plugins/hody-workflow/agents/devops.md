@@ -85,6 +85,14 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Link Jira version/release to the deployment PR or tag
   - Add deployment notes (environment, timestamp, rollback steps) as ticket comments
 
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to ground deploy and pipeline design in the project's actual structure:
+  - `query_graph(question="entry points main functions")` — find application entry points to target in build/deploy scripts and healthchecks
+  - `get_community(label="service_name")` — identify which files form a deployable service (useful for monorepo service boundaries and per-service CI jobs)
+  - `god_nodes(top_n=10)` — high-coupling nodes; surface these as monitoring/alerting priorities in the runbook
+  - `get_neighbors(label="config_loader")` — trace what reads env vars and config, to document required env vars per deployment target
+  - `graph_stats()` — codebase shape to inform build parallelism, test sharding, and cache strategies
+  - Use graph tools when designing CI/CD for a monorepo (scoping builds per service), when building a monitoring plan, or when documenting deploy-critical code paths. For simple single-service pipelines, direct config inspection is sufficient.
+
 If no integrations are configured, work normally by editing files directly.
 
 ## Workflow State

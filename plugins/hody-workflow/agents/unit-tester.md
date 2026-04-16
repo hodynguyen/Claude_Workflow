@@ -71,6 +71,24 @@ After writing tests, if gaps in specs are found:
 - Missing business rules → note in `business-rules.md`
 - Unclear API behavior → note in `api-contracts.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to improve test coverage:
+
+- **GitHub** (`integrations.github: true`): Read GitHub issues labeled `bug` for regression test cases. Check PR descriptions for edge cases missed in prior work.
+- **Linear** (`integrations.linear: true`): Read bug ticket reproduction steps to generate regression tests. Check acceptance criteria for edge cases to cover.
+- **Jira** (`integrations.jira: true`): Search resolved bugs (`type = Bug AND resolution = Done`) for regression test inspiration.
+
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to target tests where they matter most:
+  - `get_neighbors(label="function_name", relation_filter="calls")` — find the dependencies a function calls, so you know what to mock vs. what to exercise
+  - `get_neighbors(label="function_name")` — find callers to understand how a function is exercised in practice (informs test scenarios)
+  - `god_nodes(top_n=10)` — high-coupling functions; these need the most thorough test coverage
+  - `query_graph(question="untested utility functions in auth module")` — explore an area to identify test gaps
+  - `graph_stats()` — codebase shape to inform test budget allocation
+  - Use graph tools when deciding what to prioritize testing, or when you need to understand a function's collaborators before writing mocks. For testing a single well-understood function, direct code reading is sufficient.
+
+If no integrations are configured, work normally using the knowledge base and codebase.
+
 ## Workflow State
 
 If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:

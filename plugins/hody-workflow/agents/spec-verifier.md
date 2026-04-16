@@ -77,6 +77,25 @@ After verification:
 - Spec gaps found → note in `api-contracts.md` or `business-rules.md`
 - Implementation deviations accepted → document in `decisions.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to strengthen verification:
+
+- **GitHub** (`integrations.github: true`): Read linked issues and PR descriptions to cross-check spec claims against original requirements.
+- **Linear** (`integrations.linear: true`): Read ticket acceptance criteria to verify each requirement has a corresponding implementation.
+- **Jira** (`integrations.jira: true`): Read story acceptance criteria and linked epics to verify full spec compliance.
+
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to verify structural claims in specs:
+  - `query_graph(question="authentication endpoints")` — confirm every endpoint promised by the spec actually exists in the graph
+  - `get_neighbors(label="endpoint_handler")` — verify the handler wires up the expected services and validation steps per spec
+  - `shortest_path(source="handler", target="domain_service")` — verify the expected call chain matches the architecture spec
+  - `get_community(label="module_name")` — confirm module boundaries match the architecture defined in `architecture.md`
+  - `god_nodes(top_n=10)` — flag coupling that may conflict with modularity claims in the spec
+  - `graph_stats()` — compare graph stats against any structural commitments made in the spec
+  - Use graph tools to verify structural/architectural specs (boundaries, endpoints, call chains). For verifying business rules or field-level contracts, direct code reading is more precise.
+
+If no integrations are configured, work normally using the knowledge base and codebase.
+
 ## Workflow State
 
 If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:

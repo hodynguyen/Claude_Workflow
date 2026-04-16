@@ -99,7 +99,35 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
 
 Only show this section if tracker.db exists and has active items.
 
-6. **Suggest next steps**: Based on the current state, suggest what the user could do next:
+6. **Check Graphify graph**: If both `graphify-out/graph.json` and `graphify-out/graph.prev.json` exist, show a structural diff between the last two graph builds:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_diff.py --cwd .
+```
+
+This surfaces:
+- Node/edge delta (how much of the codebase structure changed)
+- Newly-added or removed node IDs (sample)
+- New god nodes (high-coupling nodes that crossed into the top-10 since the last build — flagged as potential refactor candidates)
+
+Example output:
+
+```
+Graphify:
+  curr: 1420 nodes, 1600 edges
+  delta: +28 nodes / -0 nodes, +18 edges / -0 edges
+  new god nodes: auth_validate (degree=42)
+```
+
+If only `graph.json` exists (no previous snapshot yet), show just the current size:
+
+```
+Graphify: 1392 nodes, 1582 edges (no previous snapshot to diff against yet)
+```
+
+Skip this section entirely if `graph.json` does not exist.
+
+7. **Suggest next steps**: Based on the current state, suggest what the user could do next:
 
 - If knowledge base files are empty → suggest using the architect agent to fill them
 - If no tests exist → suggest using unit-tester or integration-tester
