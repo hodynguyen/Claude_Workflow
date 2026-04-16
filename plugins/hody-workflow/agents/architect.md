@@ -82,6 +82,16 @@ At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are a
   - Add design doc links as comments on relevant Jira tickets
   - Check sprint scope to prioritize which designs to complete first
 
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph for structural analysis during design:
+  - `get_community(label="module_name")` — discover module boundaries and which functions/classes belong together
+  - `get_neighbors(label="component_name")` — map dependencies and dependents of a component before designing changes
+  - `get_neighbors(label="service_name", relation_filter="calls")` — trace call chains to understand coupling between services
+  - `god_nodes(top_n=10)` — identify high-coupling nodes that should be refactored or carefully designed around
+  - `query_graph(question="modules related to authentication")` — explore code areas relevant to the feature being designed
+  - `shortest_path(source="module_a", target="module_b")` — check dependency chains between modules; flag tight coupling or circular paths
+  - `graph_stats()` — understand codebase shape (node/edge counts, community structure) to inform architectural decisions
+  - Use graph tools when designing features that span multiple modules or when you need to understand existing module boundaries. For isolated component design, the knowledge base is sufficient.
+
 If no integrations are configured, work normally using the knowledge base and codebase.
 
 ## Workflow State

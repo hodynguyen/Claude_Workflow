@@ -1,5 +1,11 @@
 {
   "enabledPlugins": {
     "hody-workflow@hody": true
+  },
+  "mcpServers": {
+    "graphify": {
+      "command": "/opt/homebrew/bin/python3.13",
+      "args": ["-m", "graphify.serve", "graphify-out/graph.json"]
+    }
   }
 }

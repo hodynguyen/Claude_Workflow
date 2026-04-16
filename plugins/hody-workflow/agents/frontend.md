@@ -67,6 +67,26 @@ After completing work:
 - Frontend-specific tech debt → note in `tech-debt.md`
 - UI-related business rules discovered → note in `business-rules.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your implementation:
+
+- **GitHub** (`integrations.github: true`): Read related issues and PRs for context. Use `gh` CLI for repo operations.
+- **Linear** (`integrations.linear: true`): Read ticket requirements, update ticket status after implementation.
+- **Jira** (`integrations.jira: true`): Read acceptance criteria, link implementation to Jira tickets.
+
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to understand component relationships:
+  - `get_neighbors(label="ComponentName")` — find all components that import or depend on a component before modifying it
+  - `get_neighbors(label="hook_name", relation_filter="calls")` — trace which components use a shared hook or utility
+  - `get_community(label="component_name")` — discover which components form a logical feature group (page, feature module)
+  - `god_nodes(top_n=10)` — identify highly-imported components (shared layouts, context providers, utility hooks); take extra care when modifying these
+  - `query_graph(question="components related to dashboard")` — find relevant components without scanning the entire tree
+  - `shortest_path(source="PageComponent", target="ApiService")` — trace the dependency chain from UI to data layer
+  - `graph_stats()` — get codebase overview (node/edge counts)
+  - Use graph tools when modifying shared components used across multiple pages, or when you need to understand the import tree. For new isolated components, direct code reading is sufficient.
+
+If no integrations are configured, work normally by reading code directly.
+
 ## Workflow State
 
 If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:

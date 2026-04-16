@@ -26,3 +26,6 @@ conventions:
   commit_style: conventional
   linter: none
   formatter: none
+
+integrations:
+  graphify: true

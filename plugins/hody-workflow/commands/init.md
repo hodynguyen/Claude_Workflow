@@ -15,6 +15,7 @@ If the section above contains text, treat it as additional user guidance for THI
 - "focus on backend microservices" → emphasize backend KB sections, skip frontend-specific scans
 - "only init the email-microservice" → narrow scope to that subdirectory (but `.hody/` still goes at the root)
 - "skip KB populate" → run steps 1, 2, 4, 5, 6 but skip step 3
+- "--graph" or "with graph" → also build Graphify knowledge graph (step 7)
 - "verbose mode" → show detailed progress for each step
 
 If the section is empty or just whitespace, run init normally with no special focus.
@@ -120,7 +121,19 @@ If the project already has a `.hody/state.json` from a previous workflow, also r
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py migrate --cwd .
 ```
 
-7. **Show summary**: Display the detected stack and populated knowledge base
+7. **Build knowledge graph (optional)**: If the user passes `--graph` (e.g., `/init --graph` or the $ARGUMENTS contain "graph"), build the Graphify knowledge graph after profile detection:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
+```
+
+This runs the automated Graphify setup: finds Python >= 3.10, installs `graphifyy` if missing, builds the AST-based graph into `graphify-out/graph.json`, configures the MCP server in `.claude/settings.json`, updates `integrations.graphify: true` in profile.yaml, and adds `graphify-out/` to `.gitignore`.
+
+After the script completes, tell the user to restart Claude Code to activate the Graphify MCP server.
+
+Skip this step if the user did not request `--graph` or if `graphify-out/graph.json` already exists and the user didn't explicitly ask to rebuild.
+
+8. **Show summary**: Display the detected stack and populated knowledge base
 
 ## Output
 
@@ -129,6 +142,7 @@ After running, show the user:
 - Detected frameworks and languages
 - Knowledge base status: which files were populated with content, which remain as templates
 - Tracker database status: whether `.hody/tracker.db` was initialized (and whether state.json was migrated)
+- Graphify status: whether the knowledge graph was built (if `--graph` was used)
 - Suggest next steps: "Use `/hody-workflow:start-feature` to begin a guided development workflow, or call agents directly (e.g., architect, code-reviewer, unit-tester)"
 
 ## Notes

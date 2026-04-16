@@ -72,6 +72,26 @@ After completing work:
 - Backend tech debt → note in `tech-debt.md`
 - Deployment notes (new env vars, migrations) → note in `runbook.md`
 
+## MCP Tools
+
+At bootstrap, check `.hody/profile.yaml` for `integrations:`. If MCP tools are available, use them to enhance your implementation:
+
+- **GitHub** (`integrations.github: true`): Read related issues and PRs for context. Use `gh` CLI for repo operations.
+- **Linear** (`integrations.linear: true`): Read ticket requirements, update ticket status after implementation.
+- **Jira** (`integrations.jira: true`): Read acceptance criteria, link implementation to Jira tickets.
+
+- **Graphify** (`integrations.graphify: true`): Use the knowledge graph to understand code structure before modifying it:
+  - `get_neighbors(label="function_name")` — find all callers of a function before changing its signature or behavior
+  - `get_neighbors(label="function_name", relation_filter="calls")` — trace what a function depends on to understand side effects
+  - `shortest_path(source="handler", target="database_model")` — trace the call chain from API handler to data layer
+  - `god_nodes(top_n=10)` — identify high-coupling functions; take extra care when modifying these
+  - `query_graph(question="functions that handle authentication")` — find relevant code without grepping the entire codebase
+  - `get_community(label="module_name")` — understand which functions belong to the same logical module
+  - `graph_stats()` — get codebase overview (node/edge counts)
+  - Use graph tools when modifying functions that are called from multiple places, or when you need to understand callers/dependencies before a refactor. For new isolated functions, direct code reading is sufficient.
+
+If no integrations are configured, work normally by reading code directly.
+
 ## Workflow State
 
 If `.hody/state.json` exists, read it at bootstrap to understand the current workflow context:
