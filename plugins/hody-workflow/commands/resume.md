@@ -1,6 +1,6 @@
 ---
-description: Resume an interrupted workflow. If spec is confirmed, auto-runs remaining agents without stopping. If spec is pending, continues discovery.
-argument-hint: "[optional: 'skip <agent>', 'restart <agent>', or 'manual' to pause between agents]"
+description: Resume an interrupted workflow. Respects persisted execution mode (auto/guided/manual). Override with 'auto', 'manual', or 'guided'.
+argument-hint: "[optional: 'auto', 'manual', 'guided', 'skip <agent>', 'restart <agent>']"
 ---
 
 # /hody-workflow:resume
@@ -12,13 +12,15 @@ Resume an interrupted feature workflow from where it left off.
 $ARGUMENTS
 
 If the section above contains text, apply it as guidance for this resume:
+- "auto" → override execution mode to `auto` (update state.json, auto-run all remaining agents)
+- "manual" → override execution mode to `manual` (update state.json, pause between agents)
+- "guided" → override execution mode to `guided` (update state.json, auto-run after spec confirmed)
 - "skip <agent>" → mark that agent as skipped in state.json before computing next
 - "restart <agent>" → clear that agent's checkpoint and start fresh
 - "continue from <agent>" → jump directly to that agent instead of the default next
-- "manual" → pause between each agent for user confirmation (override auto-execution)
 - "focus on <area>" → pass this as additional context to the next agent
 
-If empty, resume normally: auto-execute if spec is confirmed, or continue discovery if not.
+If empty, resume normally using the execution mode persisted in state.json (default: `guided`).
 
 ## Steps
 
@@ -41,6 +43,7 @@ Resuming Workflow
 ━━━━━━━━━━━━━━━━
 Feature: [feature description]
 Type: [feature type]
+Mode: [auto | guided | manual]
 Spec: [✅ Confirmed | ⚠️ Pending — discovery incomplete]
 Started: [created_at]
 
@@ -92,15 +95,17 @@ The spec was not finalized before the session was interrupted. Continue the disc
 - Resume asking clarifying questions from where discovery left off
 - Once spec is confirmed, save it and proceed to auto-execution (same as start-feature Phase C)
 
-### If `spec_confirmed` is `true` → Auto-Execute Remaining Agents
+### If `spec_confirmed` is `true` → Execute Remaining Agents
 
-The spec is confirmed — run all remaining agents without stopping.
+The spec is confirmed — run remaining agents based on execution mode.
 
-a. **Read the spec and log**: Read `.hody/knowledge/<spec_file>` for the confirmed spec and `.hody/knowledge/<log_file>` for work already done by previous agents.
+a. **Apply mode override**: If the user passed a mode argument (`auto`, `manual`, `guided`), update `execution_mode` in state.json. Otherwise, use the persisted mode (default: `guided`).
 
-b. **Identify remaining agents**: Find all agents that are not in `completed` or `skipped`.
+b. **Read the spec and log**: Read `.hody/knowledge/<spec_file>` for the confirmed spec and `.hody/knowledge/<log_file>` for work already done by previous agents.
 
-c. **Auto-run agents**: For each remaining agent in sequence:
+c. **Identify remaining agents**: Find all agents that are not in `completed` or `skipped`.
+
+d. **Run agents based on execution mode**: For each remaining agent in sequence:
    - Set it as `active` in state.json, add `agent_log` entry
    - If checkpoint exists for this agent, pass checkpoint data to the agent so it can resume from where it left off (include `partial_output`, `resume_hint`, and completed/pending items)
    - If no checkpoint, start the agent fresh
@@ -110,11 +115,12 @@ c. **Auto-run agents**: For each remaining agent in sequence:
      ```
      ✅ backend completed — "Implemented 5 API endpoints" → Starting unit-tester...
      ```
-   - **Immediately** proceed to next agent — do NOT pause to ask the user
 
-   **Exception**: If user passed `manual` in arguments, pause between each agent and ask to continue.
+   **Mode-specific behavior after each agent:**
+   - **`auto` or `guided`**: **Immediately** proceed to next agent — do NOT pause.
+   - **`manual`**: Pause and show a review prompt. Wait for user to respond with `continue`, `skip`, or `abort`.
 
-d. **Complete workflow**: After all agents finish, set workflow status to `completed` and show the final summary.
+e. **Complete workflow**: After all agents finish, set workflow status to `completed` and show the final summary.
 
 ### If all agents already completed
 
@@ -155,8 +161,9 @@ KB Files Updated:
 ## Notes
 
 - This command is the counterpart to `/hody-workflow:start-feature` — start begins, resume continues
-- **Key behavior**: If spec is confirmed, resume auto-executes all remaining agents. If spec is pending, resume continues the interactive discovery process.
-- Workflow state persists in `.hody/state.json` across sessions
+- **Key behavior**: Respects the `execution_mode` persisted in state.json. Override with `auto`, `guided`, or `manual` argument.
+- If spec is confirmed → execute remaining agents per mode. If spec is pending → continue discovery.
+- Workflow state (including execution mode) persists in `.hody/state.json` across sessions
 - The knowledge base files modified by previous agents are available to the next agent automatically
 - **Checkpoints**: When an agent is interrupted (context limit, disconnect, etc.), its checkpoint in `tracker.db` preserves exactly what work was done. On resume, the agent receives the checkpoint data so it can skip already-completed items and continue from `resume_hint`.
-- Use `manual` argument to override auto-execution and pause between agents
+- Mode override updates state.json, so subsequent resumes will use the new mode

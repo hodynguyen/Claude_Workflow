@@ -1,6 +1,6 @@
 ---
-description: Start a spec-driven feature development workflow. Gathers requirements through discovery questions, confirms spec with user, then auto-runs all agents without interruption.
-argument-hint: "[feature description and/or focus, e.g. 'add OAuth2 login, focus on security']"
+description: Start a spec-driven feature development workflow. Supports --auto (skip discovery, full auto), --manual (pause between agents), or default guided mode.
+argument-hint: "[--auto|--manual] [feature description, e.g. 'add OAuth2 login, focus on security']"
 ---
 
 # /hody-workflow:start-feature
@@ -11,13 +11,33 @@ Start a spec-driven, multi-phase feature development workflow.
 
 $ARGUMENTS
 
-If the section above contains text, treat it as the user's initial feature description and/or additional guidance for this workflow. Use it to:
+If the section above contains text, first parse the **execution mode**, then treat the remainder as the feature description:
+
+### Execution Mode
+
+Parse the arguments for mode flags (case-insensitive):
+- `--auto` or starts with `auto:` → set execution mode to **auto**
+- `--manual` or starts with `manual:` → set execution mode to **manual**
+- Neither → default to **guided**
+
+Strip the mode flag from the remaining text before treating it as the feature description.
+
+| Mode | Discovery | Spec | Agent Execution |
+|------|-----------|------|-----------------|
+| **auto** | Skip — auto-generate spec from description + KB | Auto-confirm (no user input) | Run all agents without stopping |
+| **guided** (default) | Interactive — ask user questions | User confirms | Run all agents without stopping |
+| **manual** | Interactive — ask user questions | User confirms | Pause between each agent for review |
+
+### Feature Description
+
+Use the remaining text (after stripping mode flag) to:
 - Pre-fill step 2 (feature description) so you can skip asking if the description is clear enough
 - Apply focus areas (e.g. "focus on security" → emphasize code-reviewer + spec-verifier)
 - Narrow scope (e.g. "only backend" → skip frontend agent in BUILD)
 - Override the default agent sequence if the user explicitly requests it
 
-If empty, ask the user for the feature description normally as in step 2.
+If empty and mode is `auto`, inform the user that `--auto` requires a feature description and fall back to `guided` mode.
+If empty and mode is `guided` or `manual`, ask the user for the feature description normally.
 
 ## Workflow Overview
 
@@ -29,9 +49,9 @@ DISCOVERY → SPEC CONFIRMATION → AUTO-EXECUTION
      └──────────────┘  (iterate until user confirms)
 ```
 
-1. **Discovery**: Ask all clarifying questions upfront, discuss trade-offs with user
-2. **Spec Confirmation**: Summarize everything into a clear spec, user confirms
-3. **Auto-Execution**: Run all agents in sequence automatically — no stopping between agents
+1. **Discovery**: Ask all clarifying questions upfront, discuss trade-offs with user (**skipped in `auto` mode**)
+2. **Spec Confirmation**: Summarize everything into a clear spec, user confirms (**auto-confirmed in `auto` mode**)
+3. **Execution**: Run all agents in sequence (**pauses between agents in `manual` mode**)
 
 ## Steps
 
@@ -41,7 +61,7 @@ DISCOVERY → SPEC CONFIRMATION → AUTO-EXECUTION
 
 2. **Read project context**: Read `.hody/profile.yaml` and all `.hody/knowledge/` files to understand the current project state.
 
-3. **Gather feature description**: If not provided in arguments, ask the user to describe the feature.
+3. **Gather feature description**: If not provided in arguments, ask the user to describe the feature. (In `auto` mode, a description MUST be provided in arguments.)
 
 4. **Classify feature type**: Based on the description, classify into one of these types:
 
@@ -88,6 +108,8 @@ Present ALL questions at once. Let the user answer in any order, partially, or a
 
 6. **Iterate until clear**: If answers are vague or raise new questions, ask follow-ups. But always batch questions — never ask one at a time. Continue until you have enough information to write a spec.
 
+**If mode is `auto`**: Skip steps 5-6 entirely. Instead, use the feature description from arguments combined with existing knowledge base context (architecture.md, api-contracts.md, decisions.md) to generate the spec directly. Make reasonable assumptions based on the codebase. Do NOT ask any questions — proceed straight to Phase B.
+
 ### Phase B: Spec Confirmation
 
 7. **Write the spec**: Synthesize all discovery answers into a structured spec document. Present it to the user:
@@ -125,7 +147,11 @@ Priority: [high/medium/low]
 Estimated agents: [N] agents across [M] phases
 ```
 
-8. **Get user confirmation**: Ask the user to confirm or request changes. The user may:
+8. **Get user confirmation**:
+
+**If mode is `auto`**: Auto-confirm the spec. Show a brief 3-5 line summary of the spec so the user can see what was generated, but do NOT wait for input. Immediately proceed to execution.
+
+**If mode is `guided` or `manual`**: Ask the user to confirm or request changes. The user may:
 - Approve as-is → proceed to execution
 - Request changes → update spec and re-present
 - Add/remove agents → adjust the workflow
@@ -133,7 +159,7 @@ Estimated agents: [N] agents across [M] phases
 
 Do NOT proceed to execution until the user explicitly confirms.
 
-### Phase C: Auto-Execution
+### Phase C: Execution
 
 9. **Save spec to knowledge base**: Write the confirmed spec to `.hody/knowledge/spec-<slugified-feature>.md` with YAML frontmatter:
 
@@ -158,6 +184,7 @@ status: confirmed
   "feature": "<user's feature description>",
   "type": "<classified type>",
   "status": "in_progress",
+  "execution_mode": "<auto|guided|manual>",
   "spec_confirmed": true,
   "spec_file": "spec-<slugified-feature>.md",
   "log_file": "log-<slugified-feature>.md",
@@ -214,20 +241,30 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
   --cwd .
 ```
 
-11. **Auto-run all agents**: Execute agents in sequence automatically. For each agent:
+11. **Run agents based on execution mode**: For each agent in sequence:
    - Set it as `active` in state.json, add `agent_log` entry
    - Activate the agent (it reads profile.yaml + KB + spec file + log file)
    - When agent completes:
      - Update state.json (completed, output_summary, kb_files_modified)
      - Agent appends its work record to the log file (files created/modified, KB updated, decisions)
-   - **Immediately** proceed to next agent — do NOT pause to ask the user
+   - Show a one-line status update:
+     ```
+     ✅ researcher completed — "Researched OAuth2 providers" → Starting architect...
+     ```
 
-   **Important**: Between agents, briefly show a one-line status update so the user can follow progress:
-   ```
-   ✅ researcher completed — "Researched OAuth2 providers" → Starting architect...
-   ```
+   **Mode-specific behavior after each agent:**
 
-   **Parallel agents**: During BUILD phase, if both `frontend` and `backend` are present, run them in parallel.
+   - **`auto` or `guided`**: **Immediately** proceed to the next agent — do NOT pause to ask the user.
+   - **`manual`**: Pause and show a review prompt:
+     ```
+     ✅ researcher completed — "Researched OAuth2 providers"
+
+     Next: architect (THINK phase)
+     → continue | skip | abort
+     ```
+     Wait for the user to respond before proceeding.
+
+   **Parallel agents**: During BUILD phase, if both `frontend` and `backend` are present, run them in parallel (all modes).
 
 12. **Complete workflow**: After all agents finish:
    - Finalize the feature log (append Summary section, update status to `completed`)
@@ -286,11 +323,13 @@ Log:  .hody/knowledge/log-<feature>.md
 
 ## Notes
 
-- **Discovery is interactive** — iterate with the user until spec is clear
-- **Execution is automatic** — once spec is confirmed, agents run without interruption
-- Frontend and backend agents can run in parallel during BUILD phase
+- **Three execution modes**: `auto` (no interaction), `guided` (interactive discovery, auto execution), `manual` (interactive discovery, pause between agents)
+- **`auto` mode** skips discovery and spec confirmation — best for well-described features or simple tasks
+- **`guided` mode** (default) iterates with the user until spec is clear, then runs agents without interruption
+- **`manual` mode** gives full control — user reviews each agent's output before proceeding
+- Frontend and backend agents can run in parallel during BUILD phase (all modes)
 - SHIP phase (devops) is included only for deployment/hotfix types
 - Each agent reads the spec file + KB, so context flows naturally between agents
-- If an agent is interrupted mid-execution, use `/hody-workflow:resume` to continue — it will auto-run remaining agents since spec is already confirmed
-- Workflow state is persisted in `.hody/state.json`, spec in `.hody/knowledge/spec-*.md`, log in `.hody/knowledge/log-*.md`
+- If interrupted, use `/hody-workflow:resume` — it respects the persisted execution mode
+- Workflow state (including `execution_mode`) is persisted in `.hody/state.json`
 - The feature log provides a complete audit trail of all work done — review it after workflow completes

@@ -9,6 +9,8 @@ import os
 import re
 from datetime import datetime, timezone
 
+VALID_MODES = ("auto", "guided", "manual")
+
 
 def _now():
     """Return current UTC timestamp as ISO string."""
@@ -40,7 +42,7 @@ def _make_slug(text):
 
 
 def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False,
-                  spec_file=None, log_file=None):
+                  spec_file=None, log_file=None, execution_mode="guided"):
     """Create .hody/state.json with initial workflow state.
 
     Args:
@@ -52,10 +54,15 @@ def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False,
         spec_confirmed: Whether spec has been confirmed by the user.
         spec_file: KB filename for the confirmed spec (e.g. "spec-oauth2-login.md").
         log_file: KB filename for the feature log (auto-generated if None).
+        execution_mode: One of "auto", "guided", "manual".
 
     Returns:
         The created state dict.
     """
+    if execution_mode not in VALID_MODES:
+        raise ValueError(
+            f"Invalid execution_mode: {execution_mode}. Must be one of {VALID_MODES}"
+        )
     phase_order = [p for p in ["THINK", "BUILD", "VERIFY", "SHIP"] if p in phases]
     slug = _make_slug(feature)
 
@@ -67,6 +74,7 @@ def init_workflow(cwd, feature, feature_type, phases, spec_confirmed=False,
         "feature": feature,
         "type": feature_type,
         "status": "in_progress",
+        "execution_mode": execution_mode,
         "spec_confirmed": spec_confirmed,
         "spec_file": spec_file,
         "log_file": log_file,
@@ -95,6 +103,26 @@ def load_state(cwd):
         return None
     with open(path, "r") as f:
         return json.load(f)
+
+
+def get_execution_mode(state):
+    """Return execution mode, defaulting to 'guided' for legacy state files."""
+    if state is None:
+        return "guided"
+    return state.get("execution_mode", "guided")
+
+
+def set_execution_mode(cwd, mode):
+    """Override execution mode for current workflow."""
+    if mode not in VALID_MODES:
+        raise ValueError(
+            f"Invalid mode: {mode}. Must be one of {VALID_MODES}"
+        )
+    state = load_state(cwd)
+    if state is None:
+        raise FileNotFoundError("No active workflow — .hody/state.json not found")
+    state["execution_mode"] = mode
+    return _write_state(cwd, state)
 
 
 def confirm_spec(cwd, spec_file):

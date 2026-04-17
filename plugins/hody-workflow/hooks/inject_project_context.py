@@ -148,6 +148,7 @@ def main():
                     feature = state.get("feature", "unknown")
                     spec_confirmed = state.get("spec_confirmed", False)
                     spec_status = "spec confirmed" if spec_confirmed else "spec pending"
+                    exec_mode = state.get("execution_mode", "guided")
 
                     # Find next agent
                     next_info = None
@@ -165,14 +166,20 @@ def main():
                         system_msg += (
                             f" | Active workflow: '{feature}'"
                             f" — {spec_status}, discovery incomplete"
+                            f" (mode: {exec_mode})"
                             f". Use /hody-workflow:resume to continue discovery."
                         )
                     elif next_info:
+                        resume_hint = (
+                            "will pause between agents"
+                            if exec_mode == "manual"
+                            else "auto-run remaining agents"
+                        )
                         system_msg += (
                             f" | Active workflow: '{feature}'"
                             f" — {spec_status}, next: {next_info[1]}"
-                            f" ({next_info[0]} phase)"
-                            f". Use /hody-workflow:resume to auto-run remaining agents."
+                            f" ({next_info[0]} phase, mode: {exec_mode})"
+                            f". Use /hody-workflow:resume to {resume_hint}."
                         )
                     else:
                         system_msg += (

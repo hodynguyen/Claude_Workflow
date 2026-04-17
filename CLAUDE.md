@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.9.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.10.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
@@ -15,7 +15,7 @@ The plugin provides:
 - Configurable quality gate with `.hody/quality-rules.yaml`
 - Project rules (`.hody/rules.yaml`) — user-authored coding conventions, architecture constraints, testing requirements that all agents follow
 - Team roles & permissions via `.hody/team.yaml`
-- Workflow state machine (`.hody/state.json`) with spec-driven development (discovery → confirm → auto-execute)
+- Workflow state machine (`.hody/state.json`) with spec-driven development and 3 execution modes: `auto` (full auto, no interaction), `guided` (interactive discovery, auto execution), `manual` (pause between agents)
 - Interaction tracker (`tracker.py`, `.hody/tracker.db`) with agent checkpoints for surviving context limit interruptions
 - Graphify knowledge graph integration — AST-based code graph via MCP server, used by all 9 agents
 - Structured KB with YAML frontmatter, `_index.json` indexing, and auto-archival
@@ -100,7 +100,7 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Run all tests (539 tests across 30 test files)
+# Run all tests (553 tests across 30 test files)
 python3 -m unittest discover -s test -v
 
 # Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync,
@@ -129,4 +129,5 @@ python3 -m unittest discover -s test -v
 - **v0.6.x (Interaction Tracker)**: Complete — SQLite-based tracker (`tracker.py`, `.hody/tracker.db`) for persistent interaction tracking, agent checkpoints that survive context limit interruptions, `/hody-workflow:track` and `/hody-workflow:history` commands, `$ARGUMENTS` support in all 14 commands, per-feature work logs.
 - **v0.7.0 (Spec-Driven Workflow)**: Complete — Discovery → Confirm → Auto-execute paradigm. Agents produce specs first, user confirms, then remaining agents auto-execute against confirmed spec.
 - **v0.8.x (Graphify Integration)**: Complete — AST-based knowledge graph via tree-sitter (`graphify_setup.py`). MCP server with 7 graph query tools. All 9 agents graph-aware. Graph diff tracking between builds (`graphify_diff.py`). KB auto-populate from graph data (`graphify_kb_populate.py`). Graph metadata in KB index.
-- **v0.9.0 (Project Rules)**: Complete — User-authored project rules (`.hody/rules.yaml`) with coding conventions, architecture constraints, testing requirements, workflow preferences. All 9 agents read rules at bootstrap. `/hody-workflow:rules` command. Hook injection of rules summary. 539 tests total.
+- **v0.9.0 (Project Rules)**: Complete — User-authored project rules (`.hody/rules.yaml`) with coding conventions, architecture constraints, testing requirements, workflow preferences. All 9 agents read rules at bootstrap. `/hody-workflow:rules` command. Hook injection of rules summary.
+- **v0.10.0 (Execution Modes)**: Complete — Three workflow execution modes: `auto` (skip discovery, auto-confirm spec, run all agents), `guided` (interactive discovery, auto execution), `manual` (pause between agents). Mode persisted in state.json, respected by resume. 553 tests total.

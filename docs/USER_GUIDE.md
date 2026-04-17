@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: v0.9.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 539 tests.
+**Current status**: v0.10.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, 549+ tests.
 
 ---
 
@@ -181,7 +181,15 @@ All commands support `$ARGUMENTS` — pass parameters inline (e.g., `/status ver
 
 ### `/hody-workflow:start-feature`
 
-Describe your feature → plugin classifies it (new-feature, bug-fix, refactor, etc.) → recommends agent workflow → creates `.hody/state.json` to track progress:
+Describe your feature → plugin classifies it (new-feature, bug-fix, refactor, etc.) → recommends agent workflow → creates `.hody/state.json` to track progress.
+
+**Three execution modes:**
+
+| Mode | Command | Behavior |
+|------|---------|----------|
+| Auto | `/start-feature --auto add OAuth login` | Skip discovery, auto-generate spec, run all agents end-to-end |
+| Guided | `/start-feature add OAuth login` | Interactive discovery → confirm spec → auto-run agents |
+| Manual | `/start-feature --manual add OAuth login` | Interactive discovery → confirm spec → pause between agents |
 
 ```
 THINK:  researcher → architect
@@ -190,15 +198,15 @@ VERIFY: unit-tester → integration-tester → code-reviewer → spec-verifier
 SHIP:   devops
 ```
 
-Workflow state persists across sessions. If you close the terminal, use `/hody-workflow:resume` to continue.
+Workflow state (including execution mode) persists across sessions. Use `/hody-workflow:resume` to continue.
 
 ### `/hody-workflow:status`
 
-Shows: stack summary, KB overview (filled vs empty sections), active workflow progress, suggested next steps.
+Shows: stack summary, KB overview (filled vs empty sections), active workflow progress, execution mode, suggested next steps.
 
 ### `/hody-workflow:resume`
 
-Resume an interrupted workflow. Shows completed agents with summaries, identifies the next agent, and lets you continue, skip, or abort.
+Resume an interrupted workflow. Respects the persisted execution mode. Override with `auto`, `manual`, or `guided` argument. Shows completed agents with summaries, identifies the next agent.
 
 ### `/hody-workflow:refresh`
 

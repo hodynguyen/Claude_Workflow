@@ -18,6 +18,7 @@ SCRIPTS_DIR = os.path.join(
 sys.path.insert(0, os.path.abspath(SCRIPTS_DIR))
 
 from state import (
+    VALID_MODES,
     init_workflow,
     load_state,
     start_agent,
@@ -27,6 +28,8 @@ from state import (
     abort_workflow,
     get_next_agent,
     confirm_spec,
+    get_execution_mode,
+    set_execution_mode,
     create_feature_log,
     append_feature_log,
     finalize_feature_log,
@@ -98,6 +101,36 @@ class TestInitWorkflow(unittest.TestCase):
 
         loaded = load_state(self.cwd)
         self.assertEqual(loaded["feature"], "Feature B")
+
+    def test_init_default_execution_mode(self):
+        """Default execution mode is 'guided'."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(self.cwd, "Test", "new-feature", phases)
+        self.assertEqual(state["execution_mode"], "guided")
+
+    def test_init_auto_mode(self):
+        """Can init with auto execution mode."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(
+            self.cwd, "Test", "new-feature", phases, execution_mode="auto"
+        )
+        self.assertEqual(state["execution_mode"], "auto")
+
+    def test_init_manual_mode(self):
+        """Can init with manual execution mode."""
+        phases = {"THINK": ["researcher"]}
+        state = init_workflow(
+            self.cwd, "Test", "new-feature", phases, execution_mode="manual"
+        )
+        self.assertEqual(state["execution_mode"], "manual")
+
+    def test_init_invalid_mode(self):
+        """Invalid execution mode raises ValueError."""
+        phases = {"THINK": ["researcher"]}
+        with self.assertRaises(ValueError):
+            init_workflow(
+                self.cwd, "Test", "new-feature", phases, execution_mode="turbo"
+            )
 
     def test_partial_phases(self):
         """Only specified phases are included."""
@@ -616,6 +649,84 @@ class TestCheckpointIntegration(unittest.TestCase):
 
         results = tracker_mod.load_workflow_checkpoints(self.cwd, wf_id)
         self.assertEqual(len(results), 0)
+
+
+class TestGetExecutionMode(unittest.TestCase):
+    """Tests for get_execution_mode helper."""
+
+    def test_none_state(self):
+        """Returns 'guided' for None state."""
+        self.assertEqual(get_execution_mode(None), "guided")
+
+    def test_missing_key(self):
+        """Returns 'guided' for legacy state without execution_mode."""
+        state = {"status": "in_progress", "feature": "test"}
+        self.assertEqual(get_execution_mode(state), "guided")
+
+    def test_explicit_auto(self):
+        """Returns 'auto' when set."""
+        state = {"execution_mode": "auto"}
+        self.assertEqual(get_execution_mode(state), "auto")
+
+    def test_explicit_manual(self):
+        """Returns 'manual' when set."""
+        state = {"execution_mode": "manual"}
+        self.assertEqual(get_execution_mode(state), "manual")
+
+
+class TestSetExecutionMode(unittest.TestCase):
+    """Tests for set_execution_mode."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = self.tmpdir.name
+        os.makedirs(os.path.join(self.cwd, ".hody"), exist_ok=True)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_set_mode(self):
+        """Sets execution mode on existing workflow."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "new-feature", phases)
+        state = set_execution_mode(self.cwd, "manual")
+        self.assertEqual(state["execution_mode"], "manual")
+
+    def test_override_mode(self):
+        """Overrides existing mode."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "new-feature", phases, execution_mode="auto")
+        state = set_execution_mode(self.cwd, "guided")
+        self.assertEqual(state["execution_mode"], "guided")
+
+    def test_invalid_mode(self):
+        """Invalid mode raises ValueError."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "new-feature", phases)
+        with self.assertRaises(ValueError):
+            set_execution_mode(self.cwd, "fast")
+
+    def test_no_workflow(self):
+        """Raises FileNotFoundError when no workflow exists."""
+        with self.assertRaises(FileNotFoundError):
+            set_execution_mode(self.cwd, "auto")
+
+    def test_persists(self):
+        """Mode persists after reload."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "new-feature", phases)
+        set_execution_mode(self.cwd, "auto")
+        loaded = load_state(self.cwd)
+        self.assertEqual(loaded["execution_mode"], "auto")
+
+    def test_mode_survives_agent_cycle(self):
+        """Mode persists through start/complete agent cycle."""
+        phases = {"THINK": ["researcher"]}
+        init_workflow(self.cwd, "Test", "new-feature", phases, execution_mode="manual")
+        start_agent(self.cwd, "researcher")
+        complete_agent(self.cwd, "researcher", "Done")
+        state = load_state(self.cwd)
+        self.assertEqual(state["execution_mode"], "manual")
 
 
 if __name__ == "__main__":

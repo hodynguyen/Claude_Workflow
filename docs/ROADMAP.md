@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.9.0
+**Current version**: v0.10.0
 
 ---
 
@@ -20,6 +20,7 @@
 | — | Spec-Driven Workflow | Complete | v0.7.0–v0.7.1 |
 | — | Graphify Integration | Complete | v0.8.0–v0.8.3 |
 | — | Project Rules | Complete | v0.9.0 |
+| — | Execution Modes | Complete | v0.10.0 |
 
 ---
 
@@ -540,3 +541,15 @@ custom:
 **Key files**: `rules.py` (stdlib-only YAML parser, validator, summarizer), `commands/rules.md` (`/rules show|validate|init|add`)
 
 **Integration**: All 9 agents read rules at bootstrap. Hook injects rules summary into system message. `/init` creates template. `/status` shows rules summary.
+
+### Execution Modes (v0.10.0) — Complete
+
+**Goal**: Explicit control over workflow interactivity level.
+
+| Mode | Trigger | Discovery | Spec | Agent Execution |
+|------|---------|-----------|------|-----------------|
+| `auto` | `--auto` | Skip — auto-generate from description | Auto-confirm | Run all without stopping |
+| `guided` | default | Interactive questions | User confirms | Run all without stopping |
+| `manual` | `--manual` | Interactive questions | User confirms | Pause between each agent |
+
+**Key changes**: `execution_mode` field in state.json, `set_execution_mode()` + `get_execution_mode()` in state.py, mode-aware behavior in start-feature.md/resume.md, mode injection in hook.
