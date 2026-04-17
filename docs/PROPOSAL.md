@@ -40,6 +40,10 @@ When working with Claude Code on real-world projects:
 - **Shared knowledge base** — knowledge accumulates and persists across sessions
 - **Task-to-agents mapping** — automatically suggests the right agent for each task type
 - **Abstract design** — one plugin works for any project, any tech stack
+- **Spec-driven workflow** — agents discover requirements, produce specs, user confirms, then auto-execute
+- **Interaction tracker** — persistent tracking with agent checkpoints that survive context limits
+- **Knowledge graph** — AST-based code structure via Graphify, accessible to all agents
+- **Project rules** — user-authored coding/architecture/testing conventions that agents follow
 
 ### Design Principles
 
@@ -79,7 +83,7 @@ Minimize external dependencies. Prefer Python stdlib. PyYAML is the only require
 ### Testing
 
 ```bash
-# Run all 309 tests across 25 test files
+# Run all 539 tests across 30 test files
 python3 -m unittest discover -s test -v
 
 # Tests cover:
@@ -90,6 +94,9 @@ python3 -m unittest discover -s test -v
 # - KB sync (validate, sync status)
 # - Workflow state machine, KB index/archive, deep analysis, contracts
 # - Quality rules, CI monitor, team roles, health dashboard
+# - Interaction tracker, agent checkpoints
+# - Graphify setup, graph diff, KB auto-populate from graph
+# - Project rules (parse, validate, summarize, CLI)
 # - Backward-compatible imports from detect_stack.py
 
 # All tests use mock project structures (temp directories)
@@ -280,6 +287,10 @@ When a user runs `/hody-workflow:init` in their project, it creates the `.hody/`
 ```
 .hody/
 ├── profile.yaml              ← SHOULD commit (team shares the profile)
+├── rules.yaml                ← SHOULD commit (team shares project rules)
+├── tracker.db                ← DO NOT commit (local-only, add to .gitignore)
+├── quality-rules.yaml        ← SHOULD commit (team shares quality config)
+├── team.yaml                 ← SHOULD commit (team shares roles)
 └── knowledge/
     ├── architecture.md       ← SHOULD commit (shared knowledge)
     ├── decisions.md          ← SHOULD commit

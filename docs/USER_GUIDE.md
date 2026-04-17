@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: Phase 6 complete (v0.5.0) — 9 agents, 11 commands, 4 output styles, 6 agent contracts, 309 tests.
+**Current status**: v0.9.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 539 tests.
 
 ---
 
@@ -12,6 +12,9 @@
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [Commands Reference](#commands-reference)
+- [Project Rules](#project-rules)
+- [Interaction Tracker](#interaction-tracker)
+- [Graphify Knowledge Graph](#graphify-knowledge-graph)
 - [Configurable Quality Gate](#configurable-quality-gate)
 - [Team Roles & Permissions](#team-roles--permissions)
 - [Agents Reference](#agents-reference)
@@ -31,7 +34,7 @@ GitHub repo (hodynguyen/Claude_Workflow)
     ↓  /plugin marketplace add → git clone
 ~/.claude/plugins/marketplaces/hody/              ← cloned repo
     ↓  /plugin install → copy files
-~/.claude/plugins/cache/hody/hody-workflow/0.5.x/ ← plugin cache (Claude Code reads from here)
+~/.claude/plugins/cache/hody/hody-workflow/0.9.x/ ← plugin cache (Claude Code reads from here)
     ↓  restart Claude Code
 Plugin loaded: hooks, agents, skills, commands
 ```
@@ -121,7 +124,11 @@ This will:
    - `decisions.md` — ADR-001 documenting tech stack choices
    - `runbook.md` — dev commands from package.json, Makefile, docker-compose
    - `business-rules.md` + `tech-debt.md` — templates (fill manually)
-4. Display summary
+4. Build KB index (`_index.json`)
+5. Initialize tracker database (`.hody/tracker.db`)
+6. Create project rules template (`.hody/rules.yaml`)
+7. Optionally build Graphify knowledge graph (`/init --graph`)
+8. Display summary
 
 ### Files created in your project
 
@@ -130,6 +137,8 @@ my-app/
 └── .hody/
     ├── profile.yaml              ← Tech stack (auto-generated)
     ├── state.json                ← Workflow state (created by /start-feature)
+    ├── tracker.db                ← Interaction tracker (local-only, gitignored)
+    ├── rules.yaml                ← Project rules — coding, architecture, testing (user-authored)
     ├── quality-rules.yaml        ← Quality gate config (optional)
     ├── team.yaml                 ← Team roles & permissions (optional)
     └── knowledge/
@@ -139,6 +148,8 @@ my-app/
         ├── business-rules.md     ← Business logic (template — fill manually)
         ├── tech-debt.md          ← Known issues (template — fill manually)
         ├── runbook.md            ← Dev commands, deployment (auto-populated)
+        ├── spec-*.md             ← Feature specs (created by /start-feature)
+        ├── log-*.md              ← Per-feature work logs (created by /start-feature)
         ├── _index.json           ← Tag/agent/section index (auto-generated cache)
         └── archive/              ← Auto-archived old sections (when files > 500 lines)
 ```
@@ -162,6 +173,11 @@ my-app/
 | `/hody-workflow:sync` | Sync knowledge base with team |
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
 | `/hody-workflow:health` | Project health dashboard with metrics and recommendations |
+| `/hody-workflow:track` | Create, update, list tracked items (tasks, investigations, questions) |
+| `/hody-workflow:history` | View interaction history and session timeline |
+| `/hody-workflow:rules` | View, validate, or initialize project rules |
+
+All commands support `$ARGUMENTS` — pass parameters inline (e.g., `/status verbose`, `/kb-search tag:auth`, `/rules init`).
 
 ### `/hody-workflow:start-feature`
 
@@ -214,6 +230,31 @@ Push/pull `.hody/knowledge/` to a shared location (git branch, Gist, shared repo
 
 Rescan the codebase and update `.hody/knowledge/` files with the latest architecture, API routes, and runbook commands.
 
+### `/hody-workflow:track`
+
+Create, update, and list tracked items. Types: task, investigation, question. Priorities: high, medium, low.
+
+```
+/track create task "Implement OAuth2 login" --priority high
+/track update <id> --status done
+/track list --status active
+```
+
+### `/hody-workflow:history`
+
+View interaction history. Shows tracked items, sessions, and activity timeline.
+
+### `/hody-workflow:rules`
+
+Manage project rules (`.hody/rules.yaml`):
+
+```
+/rules show       — display current rules with summary
+/rules validate   — check YAML structure
+/rules init       — create template with commented examples
+/rules add coding:forbidden "Use camelCase for all variables"
+```
+
 ### `/hody-workflow:health`
 
 Show a comprehensive project health dashboard aggregating:
@@ -223,6 +264,106 @@ Show a comprehensive project health dashboard aggregating:
 - **Agent Usage**: most-used agents, unused agents flagged
 - **Dependencies**: outdated/vulnerable counts (if deep analysis was run)
 - **Recommendations**: actionable suggestions based on health data
+
+---
+
+## Project Rules
+
+Define project-specific rules that all 9 agents follow. Create `.hody/rules.yaml`:
+
+```yaml
+version: "1"
+
+coding:
+  naming:
+    - "Use camelCase for variables and functions"
+    - "Use PascalCase for components"
+  forbidden:
+    - "Never use any as TypeScript type"
+
+architecture:
+  boundaries:
+    - "Services must not import from controllers"
+  constraints:
+    - "Each module must have an index.ts barrel file"
+
+testing:
+  requirements:
+    - "Every API endpoint needs integration tests"
+  coverage:
+    - "Minimum 80% line coverage for src/"
+
+workflow:
+  preferences:
+    - "Always run code-reviewer before merging"
+
+custom:
+  - "All user-facing strings must support i18n"
+```
+
+- **Agents read rules at bootstrap** — each agent pays attention to relevant categories (e.g., code-reviewer checks `coding:` + `architecture:` + `testing:`)
+- **Hook injection** — rules summary is injected into every session's system message
+- **Separate from quality-rules.yaml** — `rules.yaml` is user-authored behavioral guidance; `quality-rules.yaml` is automated pre-commit checks
+
+Run `/rules init` to create a template, then uncomment and customize rules for your project.
+
+---
+
+## Interaction Tracker
+
+The tracker system (`.hody/tracker.db`) provides:
+
+- **Item tracking**: Track tasks, investigations, and questions with priority and status
+- **Agent checkpoints**: Agents save progress mid-work so context limit interruptions don't lose progress
+- **Session history**: Timeline of all interactions
+- **Per-feature work logs**: Each `/start-feature` workflow creates a dedicated log file tracking what each agent did
+
+```
+/track create task "Migrate to React 19" --priority high
+/track list --status active
+/history
+```
+
+The tracker database is local-only and should be gitignored. It's automatically created by `/init`.
+
+---
+
+## Graphify Knowledge Graph
+
+Optional AST-based knowledge graph for structural code understanding. Powered by [graphifyy](https://pypi.org/project/graphifyy/) (tree-sitter).
+
+### Setup
+
+```
+/init --graph
+```
+
+This builds `graphify-out/graph.json` and configures a Graphify MCP server. Restart Claude Code after setup.
+
+### What agents can do with the graph
+
+All 9 agents have access to Graphify MCP tools when configured:
+
+| Tool | Usage |
+|------|-------|
+| `query_graph(question)` | Natural language query against code structure |
+| `get_neighbors(label)` | Find all connected nodes (callers, callees, imports) |
+| `get_community(label)` | Identify module boundaries and cohesive components |
+| `shortest_path(source, target)` | Trace call chains between components |
+| `god_nodes(top_n)` | Find high-coupling nodes (refactor candidates) |
+| `graph_stats()` | Codebase shape: node/edge counts, module distribution |
+| `get_node(label)` | Get detailed info about a specific node |
+
+### Graph diff tracking
+
+When rebuilding the graph (via `/refresh --graph`), the previous graph is saved as `graph.prev.json`. The `/status` command shows structural changes:
+
+```
+Graphify:
+  curr: 1420 nodes, 1600 edges
+  delta: +28 nodes / -0 nodes, +18 edges / -0 edges
+  new god nodes: auth_validate (degree=42)
+```
 
 ---
 
@@ -377,20 +518,23 @@ When agents hand off work to each other, contracts in `agents/contracts/` define
 ## Complete Feature Workflow
 
 ```
-1. /hody-workflow:init                    ← Run once (detect + populate KB + build index)
-2. /hody-workflow:connect                 ← Connect GitHub/Linear (optional, once)
-3. /hody-workflow:start-feature           ← Guided workflow → creates state.json
-4. THINK: researcher → architect          ← Research + design (state tracked)
-5. BUILD: frontend + backend              ← Implement (state tracked)
-6. --- close terminal, come back later ---
-7. /hody-workflow:resume                  ← Resume from last checkpoint
-8. VERIFY: testers + reviewers            ← Test + review (state tracked)
-9. git commit → quality_gate.py           ← Configurable quality check before commit
-10. SHIP: devops                          ← Deploy (optional)
-11. /hody-workflow:ci-report              ← Generate test report for CI (optional)
-12. /hody-workflow:health                 ← Check project health (optional)
-13. Knowledge base accumulates            ← Context for future sessions
-14. /hody-workflow:sync                   ← Share KB with team (optional)
+1. /hody-workflow:init                    ← Run once (detect + populate KB + tracker + rules template)
+2. /hody-workflow:init --graph            ← Build Graphify knowledge graph (optional)
+3. /hody-workflow:rules init              ← Customize project rules (optional)
+4. /hody-workflow:connect                 ← Connect GitHub/Linear/Jira (optional, once)
+5. /hody-workflow:start-feature           ← Guided workflow → creates state.json
+6. THINK: researcher → architect          ← Discovery: research + spec (state tracked, checkpointed)
+7. User confirms spec                     ← Spec-driven: review and confirm before BUILD
+8. BUILD: frontend + backend              ← Auto-execute against confirmed spec
+9. --- close terminal, come back later ---
+10. /hody-workflow:resume                 ← Resume from last checkpoint (agent progress preserved)
+11. VERIFY: testers + reviewers           ← Test + review (state tracked)
+12. git commit → quality_gate.py          ← Configurable quality check before commit
+13. SHIP: devops                          ← Deploy (optional)
+14. /hody-workflow:ci-report              ← Generate test report for CI (optional)
+15. /hody-workflow:health                 ← Check project health (optional)
+16. Knowledge base accumulates            ← Context for future sessions
+17. /hody-workflow:sync                   ← Share KB with team (optional)
 ```
 
 ---
@@ -401,8 +545,10 @@ Every time you open a new Claude Code session in a project that has been initial
 - Hook reads `.hody/profile.yaml`
 - **Auto-refresh**: if config files (package.json, go.mod, etc.) are newer than profile.yaml → automatically re-detects
 - Injects project context into the system message
-- If `.hody/state.json` exists with an active workflow → injects workflow state (feature name, next agent)
-- All agents automatically know the tech stack AND workflow state — no need to remind them
+- If `.hody/state.json` exists with an active workflow → injects workflow state (feature name, spec status, next agent)
+- If `graphify-out/graph.json` exists → injects graph stats (node/edge counts)
+- If `.hody/rules.yaml` exists → injects rules summary
+- All agents automatically know the tech stack, workflow state, graph structure, AND project rules — no need to remind them
 
 ---
 
@@ -410,7 +556,7 @@ Every time you open a new Claude Code session in a project that has been initial
 
 The `quality_gate.py` hook runs before every commit with configurable rules:
 - **Secrets**: API keys, tokens, passwords, AWS keys, private keys + custom patterns
-- **Security**: eval(), innerHTML, document.write(), exec() anti-patterns
+- **Security**: dangerous function calls, innerHTML, DOM injection, exec anti-patterns
 - **Debug statements**: console.log (JS), breakpoint() (Python), fmt.Println (Go)
 - **File size**: configurable limit (default 500KB)
 - **Severity levels**: `error` blocks commit, `warning` allows but reports

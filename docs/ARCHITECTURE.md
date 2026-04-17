@@ -55,9 +55,11 @@
 │  ├── State: .hody/state.json (workflow state machine)           │
 │  ├── Hooks: inject_project_context (SessionStart + auto-refresh)│
 │  │          ,quality_gate (PreCommit)                           │
+│  ├── Tracker: .hody/tracker.db (SQLite interaction tracker)      │
+│  ├── Rules: .hody/rules.yaml (user-authored project rules)      │
 │  ├── Commands: /hody-workflow:init, start-feature, status,      │
 │  │             refresh, kb-search, connect, ci-report, sync,    │
-│  │             update-kb, resume, health                        │
+│  │             update-kb, resume, health, track, history, rules  │
 │  └── Output Styles: review-report, test-report, design-doc,     │
 │                      ci-report                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -76,13 +78,16 @@ Loads appropriate agent (from agents/*.md)
      ↓
 Agent reads:
   1. .hody/profile.yaml (current stack)
-  2. .hody/knowledge/* (accumulated context)
-  3. .hody/state.json (workflow state, if active)
+  2. .hody/rules.yaml (project rules, if exists)
+  3. .hody/knowledge/* (accumulated context)
+  4. .hody/state.json (workflow state + spec file, if active)
+  5. Graphify MCP tools (if configured)
      ↓
-Agent performs work
+Agent performs work, saves checkpoints to tracker.db
      ↓
 Agent writes new knowledge (with frontmatter) to .hody/knowledge/
 Agent updates .hody/state.json (mark self completed, log summary)
+Agent appends to feature work log (.hody/knowledge/log-*.md)
      ↓
 Output to user
 ```
@@ -119,8 +124,10 @@ description: When this agent should be activated (for Claude Code matching)
 
 ## Bootstrap (must run first)
 1. Read `.hody/profile.yaml` → determine tech stack
-2. Read `.hody/knowledge/[relevant-files]` → understand project context
-3. Confirm work scope with user if needed
+2. If `.hody/rules.yaml` exists, read and follow project rules
+3. Read spec file if exists (from `.hody/state.json` → `spec_file`)
+4. Read `.hody/knowledge/[relevant-files]` → understand project context
+5. Check Graphify MCP tools if `integrations.graphify: true`
 
 ## Core Expertise
 - [Domain-specific knowledge]
@@ -141,8 +148,17 @@ description: When this agent should be activated (for Claude Code matching)
 - Include YAML frontmatter (tags, created, author_agent, status)
 - After completion, write new knowledge to `.hody/knowledge/[file]`
 
+## MCP Tools
+- Check `integrations:` in profile.yaml for available MCP tools (GitHub, Linear, Jira, Graphify)
+
 ## Workflow State
 - Read/update `.hody/state.json` if active workflow exists
+- Read spec file for confirmed requirements
+- Append to feature work log
+
+## Checkpoints
+- Save checkpoints via tracker.py after each unit of work
+- Resume from checkpoint data if provided
 
 ## Collaboration
 - Suggest next agent based on workflow state
@@ -215,13 +231,20 @@ hody-workflow/                          # Root = GitHub repo
 │       │   │   └── scripts/
 │       │   │       ├── detect_stack.py       # CLI wrapper (backward-compatible)
 │       │   │       ├── state.py              # Workflow state machine
+│       │   │       ├── tracker.py            # SQLite interaction tracker + checkpoints
+│       │   │       ├── tracker_schema.py     # Tracker DB schema definitions
+│       │   │       ├── tracker_awareness.py  # Tracker context injection
+│       │   │       ├── rules.py              # Project rules engine
 │       │   │       ├── kb_index.py           # KB index builder (_index.json)
 │       │   │       ├── kb_archive.py         # KB auto-archival
-│       │   │       ├── contracts.py           # Agent I/O contract validator
+│       │   │       ├── contracts.py          # Agent I/O contract validator
 │       │   │       ├── quality_rules.py      # Configurable quality rule engine
 │       │   │       ├── ci_monitor.py         # CI feedback loop
 │       │   │       ├── team.py               # Team roles & permissions
 │       │   │       ├── health.py             # Project health dashboard
+│       │   │       ├── graphify_setup.py     # Graphify knowledge graph setup
+│       │   │       ├── graphify_diff.py      # Graph structural diff
+│       │   │       ├── graphify_kb_populate.py # KB auto-populate from graph
 │       │   │       └── detectors/            # Modular detection package (20 modules)
 │       │   │           ├── __init__.py       # Re-exports public API
 │       │   │           ├── utils.py          # read_json, read_lines
@@ -271,7 +294,10 @@ hody-workflow/                          # Root = GitHub repo
 │       │   ├── sync.md                       # Team KB sync
 │       │   ├── update-kb.md                  # KB refresh
 │       │   ├── resume.md                     # Resume interrupted workflow
-│       │   └── health.md                    # Project health dashboard
+│       │   ├── health.md                     # Project health dashboard
+│       │   ├── track.md                      # Interaction tracking
+│       │   ├── history.md                    # Interaction history
+│       │   └── rules.md                      # Project rules management
 │       │
 │       ├── output-styles/
 │       │   ├── review-report.md
@@ -281,7 +307,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 309 tests across 25 files
+├── test/                               # 539 tests across 30 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py
@@ -306,7 +332,12 @@ hody-workflow/                          # Root = GitHub repo
 │   ├── test_quality_rules.py
 │   ├── test_ci_monitor.py
 │   ├── test_team.py
-│   └── test_health.py
+│   ├── test_health.py
+│   ├── test_tracker.py
+│   ├── test_graphify_setup.py
+│   ├── test_graphify_diff.py
+│   ├── test_graphify_kb_populate.py
+│   └── test_rules.py
 │
 ├── docs/                               # Documentation
 │   ├── PROPOSAL.md                     # Vision, goals, build guide
@@ -500,8 +531,10 @@ Frontmatter is optional — existing KB files without frontmatter still work (ba
 **`inject_project_context.py`** — Runs at `SessionStart`:
 1. Checks if config files (package.json, go.mod, etc.) are newer than `.hody/profile.yaml` → auto-refreshes if stale
 2. Reads `.hody/profile.yaml` and injects project context into the system message
-3. Reads `.hody/state.json` if present — injects active workflow state (feature name, next agent) into the system message
-4. Every agent knows the project context AND workflow state AS SOON AS THE SESSION STARTS
+3. Reads `.hody/state.json` if present — injects active workflow state (feature name, spec status, next agent)
+4. Reads Graphify graph stats if `graphify-out/graph.json` exists — injects codebase structure summary
+5. Reads `.hody/rules.yaml` if present — injects project rules summary
+6. Every agent knows the project context, workflow state, graph structure, AND project rules AS SOON AS THE SESSION STARTS
 
 **`quality_gate.py`** (v2) — Runs at `PreCommit`:
 1. Loads configurable rules from `.hody/quality-rules.yaml` (falls back to built-in defaults)
@@ -525,3 +558,6 @@ Frontmatter is optional — existing KB files without frontmatter still work (ba
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
 | `/hody-workflow:resume` | Resume an interrupted workflow from last checkpoint |
 | `/hody-workflow:health` | Project health dashboard with metrics and recommendations |
+| `/hody-workflow:track` | Create, update, list tracked items (tasks, investigations, questions) |
+| `/hody-workflow:history` | View interaction history and session timeline |
+| `/hody-workflow:rules` | View, validate, or initialize project rules (.hody/rules.yaml) |

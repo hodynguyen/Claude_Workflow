@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.5.0
+**Current version**: v0.9.0
 
 ---
 
@@ -16,6 +16,10 @@
 | 4 | Ecosystem | Complete | v0.3.19 |
 | 5 | Deep Intelligence | Complete | v0.4.0 |
 | 6 | Enterprise Grade | Complete | v0.5.0 |
+| — | Interaction Tracker | Complete | v0.6.0–v0.6.4 |
+| — | Spec-Driven Workflow | Complete | v0.7.0–v0.7.1 |
+| — | Graphify Integration | Complete | v0.8.0–v0.8.3 |
+| — | Project Rules | Complete | v0.9.0 |
 
 ---
 
@@ -465,3 +469,74 @@ Recommendations:
 | **P3** | Health Dashboard | 6.4 | Low | Medium | Benefits from 5.1 + 5.2 (data sources) |
 
 **Recommended implementation order**: 5.1 → 5.2 → 5.4 → 6.1 → 5.3 → 6.2 → 6.3 → 6.4
+
+---
+
+## Post-Phase Enhancements
+
+### Interaction Tracker (v0.6.0–v0.6.4) — Complete
+
+**Goal**: Persistent interaction tracking and agent checkpoints that survive context limit interruptions.
+
+| # | Feature | Version | Description |
+|---|---------|---------|-------------|
+| 1 | SQLite tracker | v0.6.0 | `tracker.py` + `.hody/tracker.db` — tracks tasks, investigations, questions with priority, status, timestamps |
+| 2 | Agent checkpoints | v0.6.0 | Save/restore agent progress mid-work. When context limit hits, `/resume` restores from last checkpoint |
+| 3 | `/track` command | v0.6.1 | Create, update, list tracked items directly from CLI |
+| 4 | `/history` command | v0.6.1 | View interaction history and session timeline |
+| 5 | `$ARGUMENTS` support | v0.6.3 | All 14 commands accept inline arguments (e.g., `/status verbose`, `/kb-search tag:auth`) |
+| 6 | `--cwd` support | v0.6.4 | All tracker.py subcommands support `--cwd` for correct project root |
+| 7 | Per-feature work logs | v0.7.1 | Each feature workflow gets a dedicated log file in `.hody/knowledge/` tracking what each agent did |
+
+**Key files**: `tracker.py`, `tracker_schema.py`, `tracker_awareness.py`, `commands/track.md`, `commands/history.md`
+
+### Spec-Driven Workflow (v0.7.0) — Complete
+
+**Goal**: Transform the workflow from blind execution to spec-first development.
+
+**Paradigm**: Discovery → Confirm → Auto-execute
+1. THINK agents (researcher, architect) produce a **spec file** (`.hody/knowledge/spec-*.md`)
+2. User reviews and **confirms** the spec
+3. Remaining agents (BUILD, VERIFY, SHIP) auto-execute against the confirmed spec
+
+**State additions**: `spec_confirmed` (bool), `spec_file` (string) in `.hody/state.json`. Agents check `spec_confirmed` before proceeding.
+
+### Graphify Integration (v0.8.0–v0.8.3) — Complete
+
+**Goal**: Add AST-based knowledge graph for structural code understanding.
+
+| # | Feature | Version | Description |
+|---|---------|---------|-------------|
+| 1 | Graphify setup | v0.8.0 | `graphify_setup.py` — finds Python >= 3.10, installs graphifyy, builds graph, configures MCP server |
+| 2 | Agent expansion | v0.8.1 | Architect, backend, frontend agents get `## MCP Tools` with Graphify queries |
+| 3 | Full agent coverage | v0.8.2 | All 9 agents graph-aware. Graph diff tracking (`graphify_diff.py`) — rotate `graph.json` → `graph.prev.json` |
+| 4 | KB auto-populate | v0.8.3 | `graphify_kb_populate.py` — enriches `architecture.md` with graph-derived module boundaries, coupling, god nodes |
+| 5 | Graph metadata in index | v0.8.3 | `kb_index.py` reads graph stats into `_index.json` for search |
+
+**MCP tools available**: `query_graph`, `get_neighbors`, `get_community`, `shortest_path`, `god_nodes`, `graph_stats`, `get_node`
+
+**Key files**: `graphify_setup.py`, `graphify_diff.py`, `graphify_kb_populate.py`
+
+### Project Rules (v0.9.0) — Complete
+
+**Goal**: User-authored project rules that all 9 agents respect.
+
+**Schema** (`.hody/rules.yaml`):
+```yaml
+version: "1"
+coding:
+  naming: ["Use camelCase for variables"]
+  forbidden: ["Never use any as TypeScript type"]
+architecture:
+  boundaries: ["Services must not import from controllers"]
+testing:
+  requirements: ["Every API endpoint needs integration tests"]
+workflow:
+  preferences: ["Always run code-reviewer before merging"]
+custom:
+  - "All user-facing strings must support i18n"
+```
+
+**Key files**: `rules.py` (stdlib-only YAML parser, validator, summarizer), `commands/rules.md` (`/rules show|validate|init|add`)
+
+**Integration**: All 9 agents read rules at bootstrap. Hook injects rules summary into system message. `/init` creates template. `/status` shows rules summary.
