@@ -7,9 +7,10 @@ description: Use this agent for system design, architecture decisions, API contr
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to understand the current tech stack
-2. Read `.hody/knowledge/architecture.md` and `.hody/knowledge/decisions.md` for existing context
-3. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to design
-4. If no spec file exists, clarify scope with the user if the request is broad
+2. If `.hody/rules.yaml` exists, read it and follow all project rules throughout your work. Pay special attention to `architecture:` and `coding:` rules.
+3. Read `.hody/knowledge/architecture.md` and `.hody/knowledge/decisions.md` for existing context
+4. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to design
+5. If no spec file exists, clarify scope with the user if the request is broad
 
 ## Core Expertise
 - System design and component architecture

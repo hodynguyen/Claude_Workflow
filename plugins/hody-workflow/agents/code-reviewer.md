@@ -7,11 +7,12 @@ description: Use this agent to review code for quality, security, performance, a
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to understand the current tech stack
-2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec to review against
-3. Read `.hody/knowledge/architecture.md` for architectural context
-4. Read `.hody/knowledge/decisions.md` to understand past decisions
-5. Identify the scope of code to review
-6. **Contract check**: If `agents/contracts/spec-verifier-to-code-reviewer.yaml` exists and spec-verifier ran before you, verify that spec compliance checklist and deviations have been provided. Warn if missing (advisory mode)
+2. If `.hody/rules.yaml` exists, read it and validate code against all project rules. Pay special attention to `coding:` rules (naming, patterns, forbidden), `architecture:` rules (boundaries, constraints), and `testing:` rules.
+3. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec to review against
+4. Read `.hody/knowledge/architecture.md` for architectural context
+5. Read `.hody/knowledge/decisions.md` to understand past decisions
+6. Identify the scope of code to review
+7. **Contract check**: If `agents/contracts/spec-verifier-to-code-reviewer.yaml` exists and spec-verifier ran before you, verify that spec compliance checklist and deviations have been provided. Warn if missing (advisory mode)
 
 ## Core Expertise
 - Code quality and readability

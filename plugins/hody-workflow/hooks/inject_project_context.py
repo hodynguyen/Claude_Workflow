@@ -222,6 +222,27 @@ def main():
             except (json.JSONDecodeError, OSError, KeyError):
                 pass  # Don't block session on graph read error
 
+        # Inject project rules summary if rules.yaml exists
+        rules_path = os.path.join(cwd, ".hody", "rules.yaml")
+        if os.path.isfile(rules_path):
+            try:
+                hook_dir = os.path.dirname(os.path.abspath(__file__))
+                plugin_root = os.path.dirname(hook_dir)
+                scripts_dir = os.path.join(
+                    plugin_root, "skills", "project-profile", "scripts"
+                )
+                if scripts_dir not in sys.path:
+                    sys.path.insert(0, scripts_dir)
+                from rules import load_rules, summarize_rules
+
+                parsed = load_rules(cwd)
+                if parsed:
+                    rules_summary = summarize_rules(parsed)
+                    if rules_summary:
+                        system_msg += " | " + rules_summary
+            except Exception:
+                pass  # Don't block session on rules error
+
         output = {"systemMessage": system_msg}
         print(json.dumps(output))
         sys.exit(0)

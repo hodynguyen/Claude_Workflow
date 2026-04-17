@@ -7,9 +7,10 @@ description: Use this agent to research external documentation, best practices, 
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to understand the current tech stack
-2. Read `.hody/knowledge/` files for existing context and decisions
-3. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to research
-4. If no spec file exists, clarify the research scope and desired output with the user
+2. If `.hody/rules.yaml` exists, read it and ensure research recommendations align with project rules. Pay special attention to `architecture:` and `workflow:` rules.
+3. Read `.hody/knowledge/` files for existing context and decisions
+4. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that defines what to research
+5. If no spec file exists, clarify the research scope and desired output with the user
 
 ## Core Expertise
 - External documentation and API research

@@ -51,7 +51,24 @@ Knowledge Base:
 
 Use ✅ for files with content and ⚠️ for files that are still just the template.
 
-4. **Check active workflow**: If `.hody/state.json` exists and `status` is `"in_progress"`, display workflow progress:
+4. **Check project rules**: If `.hody/rules.yaml` exists, show a summary:
+
+```
+Project Rules:
+  ✅ rules.yaml — 12 rules across 4 categories
+     coding: 5 rules (2 naming, 3 forbidden)
+     architecture: 3 rules
+     testing: 2 rules
+     custom: 2 rules
+```
+
+If rules.yaml does not exist, show:
+```
+Project Rules:
+  ⚠️  Not configured — run /hody-workflow:rules init to create
+```
+
+5. **Check active workflow**: If `.hody/state.json` exists and `status` is `"in_progress"`, display workflow progress:
 
 ```
 Active Workflow:
@@ -81,7 +98,7 @@ Calculate progress as `(completed + skipped) / total agents`. Build the progress
 
 If no active workflow exists, skip this section.
 
-5. **Check tracker state**: If `.hody/tracker.db` exists, show active tracked items:
+6. **Check tracker state**: If `.hody/tracker.db` exists, show active tracked items:
 
 ```
 Active Items:
@@ -99,7 +116,7 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
 
 Only show this section if tracker.db exists and has active items.
 
-6. **Check Graphify graph**: If both `graphify-out/graph.json` and `graphify-out/graph.prev.json` exist, show a structural diff between the last two graph builds:
+7. **Check Graphify graph**: If both `graphify-out/graph.json` and `graphify-out/graph.prev.json` exist, show a structural diff between the last two graph builds:
 
 ```bash
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_diff.py --cwd .
@@ -127,7 +144,7 @@ Graphify: 1392 nodes, 1582 edges (no previous snapshot to diff against yet)
 
 Skip this section entirely if `graph.json` does not exist.
 
-7. **Suggest next steps**: Based on the current state, suggest what the user could do next:
+8. **Suggest next steps**: Based on the current state, suggest what the user could do next:
 
 - If knowledge base files are empty → suggest using the architect agent to fill them
 - If no tests exist → suggest using unit-tester or integration-tester

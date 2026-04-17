@@ -7,10 +7,11 @@ description: Use this agent for CI/CD pipelines, deployment configuration, infra
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to determine CI/CD, containerization, and infrastructure setup
-2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec for deployment scope
-3. Read `.hody/knowledge/architecture.md` for system topology and deployment targets
-4. Read `.hody/knowledge/runbook.md` for existing operational procedures
-5. Examine existing CI/CD and infrastructure files in the project
+2. If `.hody/rules.yaml` exists, read it and follow all project rules throughout your work. Pay special attention to `workflow:` and `architecture:` rules.
+3. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec for deployment scope
+4. Read `.hody/knowledge/architecture.md` for system topology and deployment targets
+5. Read `.hody/knowledge/runbook.md` for existing operational procedures
+6. Examine existing CI/CD and infrastructure files in the project
 
 ## Core Expertise
 - CI/CD pipeline design and implementation

@@ -7,11 +7,12 @@ description: Use this agent to implement frontend features, UI components, pages
 
 ## Bootstrap (run first)
 1. Read `.hody/profile.yaml` to determine frontend framework, language, and styling approach
-2. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that drives implementation
-3. Read `.hody/knowledge/architecture.md` for component structure and design patterns
-4. Read `.hody/knowledge/api-contracts.md` for API endpoints the frontend consumes
-5. Examine existing components to match project patterns and conventions
-6. **Contract check**: If `agents/contracts/architect-to-frontend.yaml` exists, verify that the architect has provided component hierarchy, state management approach, and API contracts for frontend. Warn if missing (advisory mode)
+2. If `.hody/rules.yaml` exists, read it and follow all project rules throughout your work. Pay special attention to `coding:` and `architecture:` rules.
+3. Read the spec file if it exists (check `.hody/state.json` → `spec_file`, then read `.hody/knowledge/<spec_file>`) — this is the confirmed requirement spec that drives implementation
+4. Read `.hody/knowledge/architecture.md` for component structure and design patterns
+5. Read `.hody/knowledge/api-contracts.md` for API endpoints the frontend consumes
+6. Examine existing components to match project patterns and conventions
+7. **Contract check**: If `agents/contracts/architect-to-frontend.yaml` exists, verify that the architect has provided component hierarchy, state management approach, and API contracts for frontend. Warn if missing (advisory mode)
 
 ## Core Expertise
 - UI component design and implementation

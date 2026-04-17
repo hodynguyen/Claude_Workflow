@@ -121,7 +121,15 @@ If the project already has a `.hody/state.json` from a previous workflow, also r
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py migrate --cwd .
 ```
 
-7. **Build knowledge graph (optional)**: If the user passes `--graph` (e.g., `/init --graph` or the $ARGUMENTS contain "graph"), build the Graphify knowledge graph after profile detection:
+7. **Create project rules template**: If `.hody/rules.yaml` does not exist, create it with a commented starter template:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/rules.py init --cwd .
+```
+
+This creates a template with all rule categories (coding, architecture, testing, workflow, custom) as commented-out examples. Users can uncomment and customize the rules relevant to their project. The file is optional — agents work normally without it.
+
+8. **Build knowledge graph (optional)**: If the user passes `--graph` (e.g., `/init --graph` or the $ARGUMENTS contain "graph"), build the Graphify knowledge graph after profile detection:
 
 ```bash
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
@@ -133,7 +141,7 @@ After the script completes, tell the user to restart Claude Code to activate the
 
 Skip this step if the user did not request `--graph` or if `graphify-out/graph.json` already exists and the user didn't explicitly ask to rebuild.
 
-8. **Show summary**: Display the detected stack and populated knowledge base
+9. **Show summary**: Display the detected stack and populated knowledge base
 
 ## Output
 
@@ -142,6 +150,7 @@ After running, show the user:
 - Detected frameworks and languages
 - Knowledge base status: which files were populated with content, which remain as templates
 - Tracker database status: whether `.hody/tracker.db` was initialized (and whether state.json was migrated)
+- Project rules: whether `.hody/rules.yaml` was created (remind user to uncomment and customize)
 - Graphify status: whether the knowledge graph was built (if `--graph` was used)
 - Suggest next steps: "Use `/hody-workflow:start-feature` to begin a guided development workflow, or call agents directly (e.g., architect, code-reviewer, unit-tester)"
 
