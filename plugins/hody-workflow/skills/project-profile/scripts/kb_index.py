@@ -125,10 +125,65 @@ def build_file_entry(filepath):
     return entry
 
 
-def build_index(kb_dir):
+def _load_graph_metadata(cwd):
+    """Load graph stats and god nodes from graphify-out/graph.json.
+
+    Returns a dict with node_count, edge_count, modules, god_nodes,
+    or None if the graph is not available.
+    """
+    graph_path = os.path.join(cwd, "graphify-out", "graph.json")
+    if not os.path.isfile(graph_path):
+        return None
+
+    try:
+        with open(graph_path, "r") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    nodes = data.get("nodes", [])
+    edges = data.get("links") or data.get("edges") or []
+    if not nodes:
+        return None
+
+    # Module counts
+    modules = {}
+    for n in nodes:
+        d = os.path.dirname(n.get("source_file", "")) or "."
+        modules[d] = modules.get(d, 0) + 1
+
+    # God nodes (top 10 by in-degree)
+    in_deg = {}
+    for e in edges:
+        tgt = e.get("target")
+        if tgt:
+            in_deg[tgt] = in_deg.get(tgt, 0) + 1
+
+    node_map = {n["id"]: n for n in nodes if "id" in n}
+    scored = sorted(in_deg.items(), key=lambda x: -x[1])
+    god_nodes = []
+    for nid, deg in scored[:10]:
+        if nid in node_map:
+            god_nodes.append({
+                "id": nid,
+                "label": node_map[nid].get("label", nid),
+                "in_degree": deg,
+            })
+
+    return {
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "modules": modules,
+        "god_nodes": god_nodes,
+    }
+
+
+def build_index(kb_dir, cwd=None):
     """Build the full index from all .md files in the KB directory.
 
     Returns the index dict. Skips _index.json and archive/ directory.
+    If *cwd* is given and graphify-out/graph.json exists, includes
+    graph metadata under key ``graph_metadata``.
     """
     entries = []
 
@@ -145,19 +200,31 @@ def build_index(kb_dir):
         if entry:
             entries.append(entry)
 
-    return {
+    index = {
         "version": 1,
         "built_at": _now(),
         "entries": entries,
     }
 
+    if cwd:
+        gm = _load_graph_metadata(cwd)
+        if gm:
+            index["graph_metadata"] = gm
 
-def write_index(kb_dir):
+    return index
+
+
+def write_index(kb_dir, cwd=None):
     """Build and write _index.json to the KB directory.
+
+    If *cwd* is given, graph metadata is included. Otherwise, infers the
+    project root as two directories up from *kb_dir* (i.e. .hody/knowledge/).
 
     Returns the index dict.
     """
-    index = build_index(kb_dir)
+    if cwd is None:
+        cwd = os.path.dirname(os.path.dirname(kb_dir))
+    index = build_index(kb_dir, cwd=cwd)
     index_path = os.path.join(kb_dir, "_index.json")
     os.makedirs(kb_dir, exist_ok=True)
     with open(index_path, "w") as f:

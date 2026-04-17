@@ -409,5 +409,79 @@ class TestCheckAllKBFiles(unittest.TestCase):
         self.assertEqual(len(results), 0)
 
 
+class TestGraphMetadataInIndex(unittest.TestCase):
+    """Test that build_index / write_index includes graph metadata when available."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.cwd = self.tmpdir.name
+        self.kb_dir = os.path.join(self.cwd, ".hody", "knowledge")
+        os.makedirs(self.kb_dir)
+        with open(os.path.join(self.kb_dir, "decisions.md"), "w") as f:
+            f.write("---\ntags: [test]\n---\n\n## ADR-1\nTest.\n")
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _create_graph(self, nodes, edges):
+        graph_dir = os.path.join(self.cwd, "graphify-out")
+        os.makedirs(graph_dir, exist_ok=True)
+        data = {"nodes": nodes, "links": edges}
+        with open(os.path.join(graph_dir, "graph.json"), "w") as f:
+            json.dump(data, f)
+
+    def test_no_graph_no_metadata(self):
+        index = build_index(self.kb_dir, cwd=self.cwd)
+        self.assertNotIn("graph_metadata", index)
+
+    def test_graph_present_includes_metadata(self):
+        self._create_graph(
+            [
+                {"id": "a", "source_file": "src/a.py"},
+                {"id": "b", "source_file": "src/b.py"},
+            ],
+            [{"source": "a", "target": "b"}],
+        )
+        index = build_index(self.kb_dir, cwd=self.cwd)
+        self.assertIn("graph_metadata", index)
+        gm = index["graph_metadata"]
+        self.assertEqual(gm["node_count"], 2)
+        self.assertEqual(gm["edge_count"], 1)
+        self.assertIn("src", gm["modules"])
+
+    def test_god_nodes_sorted_by_degree(self):
+        nodes = [
+            {"id": "a", "source_file": "a.py"},
+            {"id": "b", "source_file": "b.py"},
+            {"id": "c", "source_file": "c.py"},
+        ]
+        edges = [
+            {"source": "a", "target": "b"},
+            {"source": "c", "target": "b"},
+            {"source": "a", "target": "c"},
+        ]
+        self._create_graph(nodes, edges)
+        index = build_index(self.kb_dir, cwd=self.cwd)
+        gods = index["graph_metadata"]["god_nodes"]
+        self.assertEqual(gods[0]["id"], "b")
+        self.assertEqual(gods[0]["in_degree"], 2)
+
+    def test_empty_graph_no_metadata(self):
+        self._create_graph([], [])
+        index = build_index(self.kb_dir, cwd=self.cwd)
+        self.assertNotIn("graph_metadata", index)
+
+    def test_write_index_includes_graph(self):
+        self._create_graph(
+            [{"id": "x", "source_file": "x.py"}],
+            [],
+        )
+        index = write_index(self.kb_dir, cwd=self.cwd)
+        self.assertIn("graph_metadata", index)
+        loaded = load_index(self.kb_dir)
+        self.assertIn("graph_metadata", loaded)
+        self.assertEqual(loaded["graph_metadata"]["node_count"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

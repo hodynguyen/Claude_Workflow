@@ -6,7 +6,7 @@
 |-------------|--------------------------------------|
 | **Status**  | Proposed                             |
 | **Date**    | 2026-04-13                           |
-| **Version** | v0.8.2                               |
+| **Version** | v0.8.3                               |
 | **Author**  | architect agent                      |
 | **Scope**   | Plugin-wide (hooks, commands, agents)|
 

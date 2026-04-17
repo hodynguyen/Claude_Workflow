@@ -127,7 +127,7 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py migrate --cwd .
 python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
 ```
 
-This runs the automated Graphify setup: finds Python >= 3.10, installs `graphifyy` if missing, builds the AST-based graph into `graphify-out/graph.json`, configures the MCP server in `.claude/settings.json`, updates `integrations.graphify: true` in profile.yaml, and adds `graphify-out/` to `.gitignore`.
+This runs the automated Graphify setup: finds Python >= 3.10, installs `graphifyy` if missing, builds the AST-based graph into `graphify-out/graph.json`, configures the MCP server in `.claude/settings.json`, updates `integrations.graphify: true` in profile.yaml, adds `graphify-out/` to `.gitignore`, and enriches `.hody/knowledge/architecture.md` with graph-derived module boundaries, cross-module coupling data, and god nodes.
 
 After the script completes, tell the user to restart Claude Code to activate the Graphify MCP server.
 

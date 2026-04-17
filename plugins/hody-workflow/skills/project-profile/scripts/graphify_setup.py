@@ -385,6 +385,50 @@ def _run_diff(cwd):
 
 
 # ---------------------------------------------------------------------------
+# Step 8: Populate KB with graph-derived architecture
+# ---------------------------------------------------------------------------
+
+
+def _run_kb_populate(cwd):
+    """Append graph-derived module boundaries and god nodes to
+    .hody/knowledge/architecture.md. Silent no-op if KB doesn't exist.
+    """
+    arch_path = os.path.join(cwd, ".hody", "knowledge", "architecture.md")
+    if not os.path.isfile(arch_path):
+        return
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    try:
+        from graphify_kb_populate import (
+            load_graph,
+            generate_section,
+            append_to_architecture,
+        )
+    except ImportError:
+        return
+
+    graph_path = os.path.join(cwd, "graphify-out", "graph.json")
+    if not os.path.isfile(graph_path):
+        return
+
+    try:
+        nodes, edges = load_graph(graph_path)
+        if not nodes:
+            return
+        section = generate_section(nodes, edges, "graphify-out/graph.json")
+        ok = append_to_architecture(cwd, section)
+        if ok:
+            print(
+                "Updated architecture.md with graph-derived structure "
+                "(%d nodes, %d edges)" % (len(nodes), len(edges))
+            )
+    except (json.JSONDecodeError, OSError):
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -436,7 +480,10 @@ def main():
     # Step 7: Run structural diff against previous snapshot (if any)
     _run_diff(cwd)
 
-    # Step 8: Summary
+    # Step 8: Populate KB with graph-derived architecture
+    _run_kb_populate(cwd)
+
+    # Step 9: Summary
     print("")
     print("Graphify setup complete!")
     print("  Graph: %d nodes, %d edges" % (nodes, edges))
