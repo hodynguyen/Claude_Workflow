@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.10.0
+**Current version**: v0.11.0
 
 ---
 
@@ -21,6 +21,7 @@
 | — | Graphify Integration | Complete | v0.8.0–v0.8.3 |
 | — | Project Rules | Complete | v0.9.0 |
 | — | Execution Modes | Complete | v0.10.0 |
+| — | Auto-Track | Complete | v0.11.0 |
 
 ---
 
@@ -553,3 +554,24 @@ custom:
 | `manual` | `--manual` | Interactive questions | User confirms | Pause between each agent |
 
 **Key changes**: `execution_mode` field in state.json, `set_execution_mode()` + `get_execution_mode()` in state.py, mode-aware behavior in start-feature.md/resume.md, mode injection in hook.
+
+### Auto-Track (v0.11.0) — Complete
+
+**Goal**: Detect ad-hoc tasks (work outside `/start-feature`) and prompt for tracking, so the tracker doesn't only see formal workflows.
+
+**Approach**: heuristic intent detection at `UserPromptSubmit`, then hint Claude to ask the user before creating an item — keeps automation out of the destructive path.
+
+**Detection rules** (in `auto_track.py`):
+- **Skip** meta-commands (`/...`, `!...`, `@...`), short prompts (< 15 chars), questions (English `what/how/why/...`, Vietnamese `kiểu gì/thế nào/hay chưa/...`, trailing `?`)
+- **Match** imperative verbs in first 6 words — English (`add/fix/refactor/build/...`) and Vietnamese (`thêm/sửa/tạo/...`)
+- **Subtype**: `bug-fix` (bug/error/lỗi indicators), `investigation` (investigate/tìm hiểu), else `feature`
+- **Confidence**: word count → low (< 4) / medium (< 12) / high (≥ 12). Hook ignores `low`.
+
+**Hook flow** (`auto_track_hook.py`, `UserPromptSubmit`):
+1. Skip if `HODY_AUTO_TRACK=0`, no `.hody/`, or active workflow in `state.json`
+2. Run `detect_intent(prompt)`
+3. If detected with confidence ≥ medium, output `hookSpecificOutput.additionalContext` with a brief instruction telling Claude to ask the user before tracking
+
+**Why a hint rather than auto-create**: Claude can phrase a good title from the surrounding context, dedupe across multi-turn conversations, and back out if the prompt is actually clarification, while a stateless hook cannot. Errors never block input — the hook silently exits on any failure.
+
+**Key files**: `skills/project-profile/scripts/auto_track.py` (detector + CLI), `hooks/auto_track_hook.py` (hook entry), `hooks/hooks.json` (registers `UserPromptSubmit`), `test/test_auto_track.py` (33 tests).

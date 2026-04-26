@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.10.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.11.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
@@ -17,6 +17,7 @@ The plugin provides:
 - Team roles & permissions via `.hody/team.yaml`
 - Workflow state machine (`.hody/state.json`) with spec-driven development and 3 execution modes: `auto` (full auto, no interaction), `guided` (interactive discovery, auto execution), `manual` (pause between agents)
 - Interaction tracker (`tracker.py`, `.hody/tracker.db`) with agent checkpoints for surviving context limit interruptions
+- Auto-track (`auto_track.py`, `auto_track_hook.py`) — `UserPromptSubmit` hook detects task intent in user prompts (EN + VI) and hints Claude to create a tracker item when work happens outside `/start-feature`
 - Graphify knowledge graph integration — AST-based code graph via MCP server, used by all 9 agents
 - Structured KB with YAML frontmatter, `_index.json` indexing, and auto-archival
 - `$ARGUMENTS` support in all commands for inline parameters
@@ -84,9 +85,10 @@ plugins/hody-workflow/
 │   │   └── SKILL.md
 │   └── knowledge-base/templates/  # 6 KB template files
 ├── hooks/
-│   ├── hooks.json                 # SessionStart hook registration
+│   ├── hooks.json                 # SessionStart + PreToolUse + UserPromptSubmit hook registration
 │   ├── inject_project_context.py  # Reads profile + workflow state + rules, injects into system message
-│   └── quality_gate.py            # Pre-commit quality gate (v2: configurable rules)
+│   ├── quality_gate.py            # Pre-commit quality gate (v2: configurable rules)
+│   └── auto_track_hook.py         # UserPromptSubmit: detects task intent and hints tracker creation
 └── commands/                      # 14 commands: init, start-feature, status, refresh, kb-search, connect, ci-report, sync, update-kb, resume, health, track, history, rules
 ```
 
@@ -100,12 +102,13 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Run all tests (553 tests across 30 test files)
+# Run all tests (586 tests across 31 test files)
 python3 -m unittest discover -s test -v
 
 # Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync,
 # auto-refresh, workflow state, KB index/archive, deep analysis, contracts, quality rules,
-# CI monitor, team roles, health dashboard, tracker, graphify (setup/diff/kb-populate), rules
+# CI monitor, team roles, health dashboard, tracker, graphify (setup/diff/kb-populate), rules,
+# auto-track (intent detection)
 # Uses mock project structures (temp directories) to verify profile.yaml output correctness
 ```
 
@@ -131,3 +134,4 @@ python3 -m unittest discover -s test -v
 - **v0.8.x (Graphify Integration)**: Complete — AST-based knowledge graph via tree-sitter (`graphify_setup.py`). MCP server with 7 graph query tools. All 9 agents graph-aware. Graph diff tracking between builds (`graphify_diff.py`). KB auto-populate from graph data (`graphify_kb_populate.py`). Graph metadata in KB index.
 - **v0.9.0 (Project Rules)**: Complete — User-authored project rules (`.hody/rules.yaml`) with coding conventions, architecture constraints, testing requirements, workflow preferences. All 9 agents read rules at bootstrap. `/hody-workflow:rules` command. Hook injection of rules summary.
 - **v0.10.0 (Execution Modes)**: Complete — Three workflow execution modes: `auto` (skip discovery, auto-confirm spec, run all agents), `guided` (interactive discovery, auto execution), `manual` (pause between agents). Mode persisted in state.json, respected by resume. 553 tests total.
+- **v0.11.0 (Auto-Track)**: Complete — Heuristic intent detector (`auto_track.py`) classifies user prompts as task/bug-fix/investigation. New `UserPromptSubmit` hook (`auto_track_hook.py`) injects a tracking hint when a non-workflow prompt looks like a substantive task. Skipped automatically inside active workflows or via `HODY_AUTO_TRACK=0`. Bilingual (English + Vietnamese) verb/question detection. 586 tests total.

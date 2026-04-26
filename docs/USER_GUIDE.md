@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: v0.10.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, 549+ tests.
+**Current status**: v0.11.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, auto-track hook, 586 tests.
 
 ---
 
@@ -333,6 +333,46 @@ The tracker system (`.hody/tracker.db`) provides:
 ```
 
 The tracker database is local-only and should be gitignored. It's automatically created by `/init`.
+
+### Auto-Track (v0.11.0)
+
+`/start-feature` already creates a tracker item for each formal workflow, but most ad-hoc work (quick fixes, small refactors, conversations that turn into tasks) used to slip through. The auto-track hook closes that gap.
+
+**How it works**:
+
+1. Every user prompt passes through a `UserPromptSubmit` hook (`auto_track_hook.py`).
+2. The heuristic detector (`auto_track.py`) classifies the prompt as task / bug-fix / investigation, or skips it.
+3. If detected with confidence ≥ medium, the hook injects a one-line hint asking Claude to confirm with you and create a tracker item.
+4. The hook never auto-creates items, never blocks input, and stays silent on questions, slash commands, and active workflows.
+
+**Detection rules** (skip → no hint):
+
+| Skip if | Example |
+|---------|---------|
+| Slash / shell / mention prefix | `/status`, `!ls`, `@agent` |
+| Short prompt (< 15 chars) | `fix it`, `add` |
+| English question word at start | `what`, `how`, `why`, `is`, `does`, `can`, ... |
+| Vietnamese question phrase anywhere | `kiểu gì`, `thế nào`, `tại sao`, `hay chưa`, `có thể` |
+| Trailing `?` | `something is wrong here?` |
+| No imperative verb in first 6 words | `the production server has been down` |
+| Active workflow exists in `state.json` | `/start-feature` already tracks it |
+
+**Detected verbs** (first 6 words):
+
+- English: `add, create, build, implement, write, generate, make, develop, update, change, modify, refactor, rewrite, improve, optimize, migrate, fix, patch, resolve, debug, remove, delete, drop, integrate, connect, deploy, release, ship, investigate, explore, research, ...`
+- Vietnamese: `thêm, tạo, viết, làm, sửa, chỉnh, đổi, thay, xóa, bỏ, ...`
+
+**Subtype classification**:
+
+- `bug-fix` → prompt mentions `bug`, `error`, `exception`, `broken`, `crash`, `lỗi`, `không chạy`, ...
+- `investigation` → prompt mentions `investigate`, `explore`, `research`, `tìm hiểu`, ...
+- `feature` → default
+
+**Disable globally** with `HODY_AUTO_TRACK=0`:
+
+```bash
+export HODY_AUTO_TRACK=0    # silence the hint for the current shell
+```
 
 ---
 
