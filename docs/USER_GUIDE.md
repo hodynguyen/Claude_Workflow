@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: v0.11.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, auto-track hook, 586 tests.
+**Current status**: v0.12.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, auto-track hook, MCP auto-setup for Jira/Linear/GitHub, 615 tests.
 
 ---
 
@@ -224,7 +224,33 @@ Search across `.hody/knowledge/` files. Supports:
 
 ### `/hody-workflow:connect`
 
-Configure MCP servers (GitHub, Linear, Jira). After connecting, agents can read/create PRs, issues, and comments. Supports search, read, create, and transition operations for all 3 platforms.
+Configure MCP servers (GitHub, Linear, Jira). After connecting, agents can read/create PRs, issues, and comments.
+
+**Auto-setup mode (v0.12.0+):** pass all required fields and the command writes `.claude/settings.json` + flips `integrations.<name>: true` in `profile.yaml` without asking. Restart Claude Code to activate.
+
+```
+/hody-workflow:connect jira --api-token=<token> --site=https://acme.atlassian.net --email=me@acme.com
+/hody-workflow:connect linear --api-key=<key>
+/hody-workflow:connect github --token=<pat>
+```
+
+**Interactive mode:** if any required field is missing, the command lists exactly what's needed and where to get each value, then prompts you. No copy-paste of JSON.
+
+| Integration | Required flags | Where to get the value |
+|------------|---------------|------------------------|
+| `jira` | `--api-token`, `--site`, `--email` | Token: <https://id.atlassian.com/manage-profile/security/api-tokens>. Site: `https://your-org.atlassian.net`. Email: your Atlassian account. |
+| `linear` | `--api-key` | Linear → Settings → API → Personal API keys |
+| `github` | `--token` | <https://github.com/settings/tokens> (`repo`, `read:org`). Optional — `gh` CLI is the default route. |
+| `graphify` | (none — runs an automated setup script) | — |
+
+**Other actions:**
+
+```
+/hody-workflow:connect status        # show what's configured
+/hody-workflow:connect disable jira  # remove MCP server entry + flip flag
+```
+
+Existing MCP servers in `.claude/settings.json` are preserved; only the target integration's entry is added/replaced/removed.
 
 ### `/hody-workflow:ci-report`
 

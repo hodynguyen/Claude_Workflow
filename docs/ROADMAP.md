@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.11.0
+**Current version**: v0.12.0
 
 ---
 
@@ -22,6 +22,7 @@
 | — | Project Rules | Complete | v0.9.0 |
 | — | Execution Modes | Complete | v0.10.0 |
 | — | Auto-Track | Complete | v0.11.0 |
+| — | MCP Auto-Setup | Complete | v0.12.0 |
 
 ---
 
@@ -575,3 +576,30 @@ custom:
 **Why a hint rather than auto-create**: Claude can phrase a good title from the surrounding context, dedupe across multi-turn conversations, and back out if the prompt is actually clarification, while a stateless hook cannot. Errors never block input — the hook silently exits on any failure.
 
 **Key files**: `skills/project-profile/scripts/auto_track.py` (detector + CLI), `hooks/auto_track_hook.py` (hook entry), `hooks/hooks.json` (registers `UserPromptSubmit`), `test/test_auto_track.py` (33 tests).
+
+### MCP Auto-Setup (v0.12.0) — Complete
+
+**Goal**: Reduce `/connect jira` (and Linear, GitHub) from a copy-paste exercise into a single command — zero friction when fields are passed, clear guidance when they're not.
+
+**Behavior**:
+- All required flags present → write `.claude/settings.json` + `profile.yaml` non-interactively, tell user to restart.
+- Any flag missing → list missing fields with description + where to get the value, then prompt.
+- Existing servers in `mcpServers` are preserved (merge, never overwrite).
+
+**Required fields per integration**:
+
+| Integration | Flags | Env vars written |
+|------------|-------|------------------|
+| `jira` | `--api-token`, `--site`, `--email` | `JIRA_API_TOKEN`, `JIRA_BASE_URL`, `JIRA_USER_EMAIL` |
+| `linear` | `--api-key` | `LINEAR_API_KEY` |
+| `github` | `--token` | `GITHUB_PERSONAL_ACCESS_TOKEN` |
+
+**CLI** (`mcp_setup.py`):
+- `jira/linear/github [--flags...]` → configure (writes settings + profile)
+- `remove <name>` → drop server entry, flip profile flag to false
+- `status` → JSON of `{configured_in_settings, profile_flag}` per integration
+- `fields <name>` → JSON describing required fields (used by command guide)
+
+**Why not auto-fetch tokens**: Tokens are user-specific secrets. The script writes them to `.claude/settings.json` directly — same convention as Graphify's automated setup. For shared/committed configs, users can swap the value for `${ENV_VAR}` interpolation manually.
+
+**Key files**: `skills/project-profile/scripts/mcp_setup.py` (CLI + library), `commands/connect.md` (auto-vs-interactive flow), `test/test_mcp_setup.py` (29 tests).

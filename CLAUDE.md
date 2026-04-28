@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.11.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
+This is the **Hody Workflow** plugin for Claude Code — a project-aware development workflow system with 9 specialized AI agents. Current version: v0.12.0. Full documentation is in `docs/` (PROPOSAL, ARCHITECTURE, ROADMAP, USER_GUIDE).
 
 The plugin provides:
 - Auto-detection of project tech stacks (generates `.hody/profile.yaml`)
@@ -102,7 +102,7 @@ plugins/hody-workflow/
 ## Testing
 
 ```bash
-# Run all tests (586 tests across 31 test files)
+# Run all tests (615 tests across 32 test files)
 python3 -m unittest discover -s test -v
 
 # Tests cover: per-language detectors, monorepo, devops, serializer, quality gate, KB sync,
@@ -135,3 +135,4 @@ python3 -m unittest discover -s test -v
 - **v0.9.0 (Project Rules)**: Complete — User-authored project rules (`.hody/rules.yaml`) with coding conventions, architecture constraints, testing requirements, workflow preferences. All 9 agents read rules at bootstrap. `/hody-workflow:rules` command. Hook injection of rules summary.
 - **v0.10.0 (Execution Modes)**: Complete — Three workflow execution modes: `auto` (skip discovery, auto-confirm spec, run all agents), `guided` (interactive discovery, auto execution), `manual` (pause between agents). Mode persisted in state.json, respected by resume. 553 tests total.
 - **v0.11.0 (Auto-Track)**: Complete — Heuristic intent detector (`auto_track.py`) classifies user prompts as task/bug-fix/investigation. New `UserPromptSubmit` hook (`auto_track_hook.py`) injects a tracking hint when a non-workflow prompt looks like a substantive task. Skipped automatically inside active workflows or via `HODY_AUTO_TRACK=0`. Bilingual (English + Vietnamese) verb/question detection. 586 tests total.
+- **v0.12.0 (MCP Auto-Setup)**: Complete — `mcp_setup.py` configures Jira/Linear/GitHub MCP servers non-interactively when all required fields are passed (e.g. `--api-token`, `--site`, `--email` for Jira). Falls back to interactive guidance listing missing fields with where-to-get instructions. Merges into `.claude/settings.json` without clobbering other servers; flips `integrations.<name>` in profile.yaml. CLI subcommands: `jira/linear/github` (configure), `remove`, `status`, `fields`. 615 tests total.

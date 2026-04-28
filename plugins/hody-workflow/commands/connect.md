@@ -1,6 +1,6 @@
 ---
-description: Configure MCP server integrations for the project. Connects agents to external tools like GitHub, Linear, and Jira.
-argument-hint: "[optional: specific integration, e.g. 'github' or 'linear jira']"
+description: Configure MCP server integrations for the project. Connects agents to external tools like GitHub, Linear, and Jira. Auto-installs MCP server if all required fields are passed; otherwise prompts for missing values.
+argument-hint: "[integration] [--api-token X --site Y --email Z ...] OR 'list' OR 'disable <name>'"
 ---
 
 # /hody-workflow:connect
@@ -11,13 +11,29 @@ Configure MCP (Model Context Protocol) server integrations so agents can interac
 
 $ARGUMENTS
 
-If the section above contains text, treat it as the target integration(s) to configure:
-- Single name (e.g. "github") → configure only that integration
-- Multiple names (e.g. "linear jira") → configure each
-- "list" → list currently configured integrations, don't add new ones
-- "disable <name>" → remove that integration from profile.yaml
+Parse the section above as `<integration> [--field value ...]`:
 
-If empty, guide the user through available integrations interactively.
+- `jira`, `linear`, `github`, `graphify` → configure the named integration
+- `list` (alias: `status`) → show currently configured integrations, don't add
+- `disable <name>` (alias: `remove <name>`) → remove that integration from settings + profile.yaml
+- Multiple integration names without flags (e.g. `linear jira`) → configure each interactively
+
+**Auto-setup vs interactive flow:**
+
+- If all required `--field` flags for the chosen integration are present, run setup non-interactively (no questions, just write settings + profile, then tell user to restart).
+- If any required field is missing, list the missing fields with their guidance, then prompt the user one by one. Never proceed without valid values.
+- Tokens and secrets entered interactively must NOT be echoed in the next reply or stored anywhere outside `.claude/settings.json`.
+
+**Required fields per integration** (see `mcp_setup.py fields <name>` for canonical source):
+
+| Integration | Required flags | Where to get the value |
+|-------------|---------------|------------------------|
+| `jira` | `--api-token`, `--site`, `--email` | Token: <https://id.atlassian.com/manage-profile/security/api-tokens>. Site: e.g. `https://your-org.atlassian.net`. Email: your Atlassian account email. |
+| `linear` | `--api-key` | Linear → Settings → API → Personal API keys |
+| `github` | `--token` (PAT) | <https://github.com/settings/tokens> (scopes: `repo`, `read:org`). Optional — `gh` CLI is the default route. |
+| `graphify` | (none — automated) | Run setup script directly. |
+
+If empty input, guide the user through available integrations interactively.
 
 ## Steps
 
@@ -75,51 +91,73 @@ Alternatively, configure the GitHub MCP server for richer integration:
 
 Tell the user to add this to their Claude Code MCP settings (`.claude/settings.json` or via `/mcp` command).
 
-### Linear Setup
+### Linear / Jira / GitHub Setup (auto-install)
 
-Configure the Linear MCP server:
+These three integrations share the same setup flow via `mcp_setup.py`. The script writes `.claude/settings.json` (merging with existing servers) and flips `integrations.<name>: true` in `.hody/profile.yaml`.
 
-```json
-{
-  "mcpServers": {
-    "linear": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-linear"],
-      "env": {
-        "LINEAR_API_KEY": "<api-key>"
-      }
-    }
-  }
-}
+**Step 1 — Check for required fields in $ARGUMENTS.**
+
+Required field maps:
+
+- `jira`: `--api-token`, `--site`, `--email`
+- `linear`: `--api-key`
+- `github`: `--token`
+
+**Step 2 — If all required fields are provided, run non-interactively:**
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py jira \
+  --cwd . \
+  --api-token "<token>" \
+  --site "<https://your-org.atlassian.net>" \
+  --email "<email>"
 ```
 
-Guide the user:
-- Get API key from Linear → Settings → API → Personal API keys
-- Add MCP config to Claude Code settings
+Output is JSON describing what was written. After success, tell the user:
 
-### Jira Setup
-
-Configure Jira MCP integration:
-
-```json
-{
-  "mcpServers": {
-    "jira": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-atlassian"],
-      "env": {
-        "JIRA_BASE_URL": "<https://your-org.atlassian.net>",
-        "JIRA_API_TOKEN": "<api-token>",
-        "JIRA_USER_EMAIL": "<email>"
-      }
-    }
-  }
-}
+```
+✅ jira MCP configured in .claude/settings.json
+   profile.yaml updated: integrations.jira = true
+   ⚠️  Restart Claude Code for the MCP server to load.
+   Verify with /mcp after restart, or ask Claude to "list available Jira projects".
 ```
 
-Guide the user:
-- Get API token from https://id.atlassian.com/manage-profile/security/api-tokens
-- Add MCP config to Claude Code settings
+**Step 3 — If any field is missing, ask the user.** Display a guidance block first so they know exactly what to provide:
+
+```
+Jira MCP needs 3 fields. Please provide:
+
+  --api-token   Atlassian API token
+                Create at https://id.atlassian.com/manage-profile/security/api-tokens
+  --site        Your Jira URL
+                e.g. https://acme.atlassian.net  (no trailing slash)
+  --email       Atlassian account email
+                The email you log into Atlassian with
+
+You provided: --api-token=*** (others missing)
+Reply with the missing values, or re-run as:
+  /hody-workflow:connect jira --api-token=... --site=... --email=...
+```
+
+For Linear / GitHub use the same pattern — list each missing field, the env var it maps to, and where to get the value. Use `mcp_setup.py fields <name>` to fetch the canonical field list as JSON if needed.
+
+**Step 4 — When user replies with the missing values, run the setup script with the full set of args.**
+
+**Disable / remove** an integration:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py remove jira --cwd .
+```
+
+This drops the server entry from `.claude/settings.json` and sets `integrations.jira: false` in profile.yaml. Other servers in `mcpServers` are preserved.
+
+**Status / list** of all integrations:
+
+```bash
+python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py status --cwd .
+```
+
+Returns JSON of `configured_in_settings` and `profile_flag` per integration.
 
 ### Graphify Setup
 
