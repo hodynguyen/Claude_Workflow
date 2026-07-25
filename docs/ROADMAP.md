@@ -2,7 +2,7 @@
 
 > Single source of truth for all phase tracking and future plans.
 
-**Current version**: v0.12.0
+**Current version**: v0.13.0
 
 ---
 
@@ -23,6 +23,7 @@
 | — | Execution Modes | Complete | v0.10.0 |
 | — | Auto-Track | Complete | v0.11.0 |
 | — | MCP Auto-Setup | Complete | v0.12.0 |
+| — | Runtime Wiring & Script CLIs | Complete | v0.13.0 |
 
 ---
 

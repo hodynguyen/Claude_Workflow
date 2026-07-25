@@ -250,6 +250,163 @@ def _run_quality_gate_legacy(cwd, staged):
     return False, "\n".join(report_lines)
 
 
+# --- git commit detection -------------------------------------------------
+#
+# A naive `^\s*git\s+commit\b` match misses every realistic invocation:
+#   git add -A && git commit -m x     (chained)
+#   VAR=val git commit                (env assignment prefix)
+#   git -C /path commit               (global option before the subcommand)
+#   foo; git commit                   (sequenced)
+#   make build | tee log; git commit  (pipeline)
+# while it must NOT fire on text that merely mentions a commit:
+#   echo "git commit"                 (quoted string)
+#   git log --grep="commit"           (different subcommand)
+#   cat > f <<'EOF' ... git commit    (heredoc body -- data, not a command)
+#
+# A false positive is worse than a miss here: it denies a Bash call that was
+# never a commit. Heredoc bodies are therefore blanked before anything else.
+
+_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+# Wrappers and shell keywords that may precede the real command without
+# changing what it is.
+_CMD_PREFIXES = frozenset([
+    "env", "command", "exec", "nohup", "builtin", "time",
+    "sudo", "doas",
+    "then", "else", "elif", "do", "!", "{",
+])
+
+# `<<WORD` / `<<-WORD` / `<<'WORD'` heredoc openers, but never `<<<` (here-string).
+_HEREDOC_RE = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+
+# git global options that consume a separate value token.
+_GIT_VALUE_OPTS = frozenset([
+    "-C", "-c", "--git-dir", "--work-tree", "--namespace",
+    "--exec-path", "--super-prefix", "--config-env",
+])
+
+# Shell operators that start a new command context.
+_SEGMENT_SPLIT_RE = re.compile(r"&&|\|\||[;\n|&()]")
+
+
+def _strip_heredocs(command):
+    """Blank the body of every heredoc so its contents are treated as data.
+
+    Without this, `cat > notes.md <<'EOF'` followed by a line reading
+    `git commit -m x` would deny the write -- the old regex never did, so this
+    would have been a fresh false positive.
+
+    The body is only blanked when the terminator line is actually found, which
+    keeps an unrelated `<<` (e.g. a shift operator inside a quoted script) from
+    swallowing the rest of the command.
+    """
+    if "<<" not in command:
+        return command
+
+    lines = command.split("\n")
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        for match in _HEREDOC_RE.finditer(line):
+            delimiter = match.group(2)
+            end = None
+            for j in range(i, len(lines)):
+                if lines[j].strip() == delimiter:
+                    end = j
+                    break
+            if end is None:
+                continue  # no terminator -- not a heredoc we understand
+            out.extend([""] * (end - i + 1))
+            i = end + 1
+    return "\n".join(out)
+
+
+def _strip_quoted(command):
+    """Blank out quoted spans and escapes so their contents are never parsed
+    as a command. Length is preserved-ish by substituting spaces, which keeps
+    token boundaries intact."""
+    out = []
+    quote = None
+    i = 0
+    n = len(command)
+    while i < n:
+        ch = command[i]
+        if quote is None:
+            if ch == "\\":
+                # Neutralize the escape and the escaped character so an
+                # escaped separator is not mistaken for a real one.
+                out.append("  ")
+                i += 2
+                continue
+            if ch == "'" or ch == '"':
+                quote = ch
+                out.append(" ")
+                i += 1
+                continue
+            out.append(ch)
+            i += 1
+            continue
+        # inside a quoted span
+        if quote == '"' and ch == "\\":
+            out.append("  ")
+            i += 2
+            continue
+        if ch == quote:
+            quote = None
+        out.append(" ")
+        i += 1
+    return "".join(out)
+
+
+def _is_git_commit_segment(segment):
+    """True if a single shell command segment invokes `git ... commit`."""
+    tokens = segment.split()
+    idx = 0
+    # Skip env assignments, shell keywords and benign command wrappers --
+    # plus any options belonging to a wrapper we already skipped, so
+    # `env -i git commit` and `sudo -n git commit` still resolve to git.
+    saw_wrapper = False
+    while idx < len(tokens):
+        token = tokens[idx]
+        if _ENV_ASSIGN_RE.match(token) or token in _CMD_PREFIXES:
+            saw_wrapper = saw_wrapper or token in _CMD_PREFIXES
+            idx += 1
+            continue
+        if saw_wrapper and token.startswith("-"):
+            idx += 1
+            continue
+        break
+    if idx >= len(tokens):
+        return False
+
+    if tokens[idx].rsplit("/", 1)[-1] not in ("git", "git.exe"):
+        return False
+    idx += 1
+
+    # The subcommand is the first non-option token after any global options.
+    while idx < len(tokens):
+        token = tokens[idx]
+        if token.startswith("-"):
+            idx += 2 if token in _GIT_VALUE_OPTS else 1
+            continue
+        return token == "commit"
+    return False
+
+
+def is_git_commit_command(command):
+    """True if `command` invokes `git commit` anywhere in its shell chain."""
+    if not command or "commit" not in command:
+        return False
+    cleaned = _strip_quoted(_strip_heredocs(command))
+    for segment in _SEGMENT_SPLIT_RE.split(cleaned):
+        if _is_git_commit_segment(segment):
+            return True
+    return False
+
+
 def main():
     try:
         input_data = json.load(sys.stdin)
@@ -262,7 +419,7 @@ def main():
         tool_input = input_data.get("tool_input", {})
         command = tool_input.get("command", "")
 
-        if not re.match(r"^\s*git\s+commit\b", command):
+        if not is_git_commit_command(command):
             sys.exit(0)
 
         cwd = input_data.get("cwd", os.getcwd())

@@ -36,7 +36,7 @@ If empty, detect the configured sync mode from profile.yaml and sync bidirection
 3. **Run the sync script**:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/knowledge-base/scripts/kb_sync.py --cwd . --mode <mode> --action <action> [options]
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/knowledge-base/scripts/kb_sync.py --cwd . --mode <mode> --action <action> [options]
 ```
 
 Options per mode:

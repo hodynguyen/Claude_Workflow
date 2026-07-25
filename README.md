@@ -2,7 +2,7 @@
 
 > A project-aware development workflow plugin for Claude Code with 9 specialized AI agents.
 
-**Version**: v0.5.0 — All 6 phases complete
+**Version**: v0.13.0 — All 6 phases complete
 
 **Documentation**: [User Guide](./docs/USER_GUIDE.md) | [Architecture](./docs/ARCHITECTURE.md) | [Proposal](./docs/PROPOSAL.md) | [Roadmap](./docs/ROADMAP.md)
 
@@ -109,6 +109,10 @@ my-app/
 | `/hody-workflow:sync` | Sync knowledge base with team |
 | `/hody-workflow:update-kb` | Rescan codebase and refresh knowledge base |
 | `/hody-workflow:health` | Project health dashboard with metrics and recommendations |
+| `/hody-workflow:track` | Create, update, and search tracked items (tasks, investigations, questions) |
+| `/hody-workflow:history` | View interaction history across sessions |
+| `/hody-workflow:rules` | View, validate, or initialize project rules (`.hody/rules.yaml`) |
+| `/hody-workflow:team` | View team roles and permissions; check agent/workflow access |
 
 ### Agents
 
@@ -162,7 +166,7 @@ Claude_Workflow/
 ├── plugins/
 │   └── hody-workflow/
 │       ├── .claude-plugin/
-│       │   └── plugin.json           # Plugin metadata (v0.5.0)
+│       │   └── plugin.json           # Plugin metadata (v0.13.0)
 │       ├── agents/                   # 9 specialized agents
 │       │   ├── contracts/            # 6 agent handoff contracts (.yaml)
 │       │   ├── architect.md
@@ -201,7 +205,7 @@ Claude_Workflow/
 │       │   ├── hooks.json
 │       │   ├── inject_project_context.py     # SessionStart + auto-refresh
 │       │   └── quality_gate.py               # Pre-commit quality gate (v2)
-│       └── commands/                 # 11 commands
+│       └── commands/                 # 15 commands
 │           ├── init.md
 │           ├── start-feature.md
 │           ├── status.md
@@ -212,8 +216,12 @@ Claude_Workflow/
 │           ├── ci-report.md
 │           ├── sync.md
 │           ├── update-kb.md
-│           └── health.md
-├── test/                             # 309 tests across 25 files
+│           ├── health.md
+│           ├── track.md
+│           ├── history.md
+│           ├── rules.md
+│           └── team.md
+├── test/                             # 802 tests across 33 files
 ├── docs/
 │   ├── PROPOSAL.md
 │   ├── ARCHITECTURE.md
@@ -231,10 +239,12 @@ Claude_Workflow/
 # Run all tests
 python3 -m unittest discover -s test -v
 
-# 309 tests covering: per-language detectors, monorepo, devops,
+# 802 tests covering: per-language detectors, monorepo, devops,
 # serializer, quality gate, KB sync, auto-refresh, workflow state,
 # KB index/archive, deep analysis, contracts, quality rules,
-# CI monitor, team roles, health dashboard
+# CI monitor, team roles, health dashboard, tracker, graphify,
+# rules, auto-track, MCP setup, git-commit detection,
+# and the runtime CLI surface (real subprocess invocations)
 ```
 
 ---

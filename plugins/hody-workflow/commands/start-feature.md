@@ -176,55 +176,29 @@ status: confirmed
 [Full spec content from step 7]
 ```
 
-10. **Create workflow state and feature log**: Create `.hody/state.json`:
+10. **Create workflow state and feature log**: One call does both:
 
-```json
-{
-  "workflow_id": "feat-<slugified-description>-<YYYYMMDD>",
-  "feature": "<user's feature description>",
-  "type": "<classified type>",
-  "status": "in_progress",
-  "execution_mode": "<auto|guided|manual>",
-  "spec_confirmed": true,
-  "spec_file": "spec-<slugified-feature>.md",
-  "log_file": "log-<slugified-feature>.md",
-  "created_at": "<ISO 8601 UTC>",
-  "updated_at": "<ISO 8601 UTC>",
-  "phases": {
-    "<PHASE>": {
-      "agents": ["<agent1>", "<agent2>"],
-      "completed": [],
-      "active": null,
-      "skipped": []
-    }
-  },
-  "phase_order": ["THINK", "BUILD", "VERIFY", "SHIP"],
-  "agent_log": []
-}
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py init-workflow \
+  --feature "<user's feature description>" \
+  --type "<classified type>" \
+  --phases '{"THINK":["architect"],"BUILD":["backend"],"VERIFY":["unit-tester","code-reviewer"]}' \
+  --spec-file "spec-<slugified-feature>.md" \
+  --mode <auto|guided|manual> \
+  --spec-confirmed \
+  --cwd .
 ```
 
-Create the **feature log** file at `.hody/knowledge/log-<slugified-feature>.md`:
+This writes `.hody/state.json` in the current schema and creates
+`.hody/knowledge/log-<slugified-feature>.md` with the correct frontmatter.
+Do **not** hand-write either file.
 
-```markdown
----
-tags: [log, <feature-type>]
-date: <YYYY-MM-DD>
-author-agent: start-feature
-status: in_progress
----
+- `--phases` takes a single-quoted JSON object mapping phase name to its agent list; use
+  the sequence from "Agent Sequence by Feature Type" below.
+- Exit 1 with "Active workflow ... in progress" means a workflow is already running —
+  offer `/hody-workflow:resume` rather than passing `--force`, which destroys it.
 
-# Feature Log: <feature title>
-
-Type: <feature-type>
-Started: <YYYY-MM-DD>
-
-## Spec
--> spec-<slugified-feature>.md
-
-## Agent Work
-```
-
-This log file is where each agent will append its detailed work record. It tracks:
+The log file is where each agent will append its detailed work record. It tracks:
 - What each agent did (summary)
 - Files created and modified in the codebase
 - KB files updated
@@ -233,7 +207,7 @@ This log file is where each agent will append its detailed work record. It track
 Also create a tracker item:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
   --type task \
   --title "<feature description>" \
   --tags "<relevant tags>" \
@@ -242,11 +216,22 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
 ```
 
 11. **Run agents based on execution mode**: For each agent in sequence:
-   - Set it as `active` in state.json, add `agent_log` entry
+   - Mark it active:
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py start-agent <agent> --cwd .
+     ```
+     If the JSON contains a non-null `checkpoint`, pass its `partial_output`, `resume_hint`
+     and items to the agent so it continues instead of restarting. Surface any `warnings`.
    - Activate the agent (it reads profile.yaml + KB + spec file + log file)
-   - When agent completes:
-     - Update state.json (completed, output_summary, kb_files_modified)
-     - Agent appends its work record to the log file (files created/modified, KB updated, decisions)
+   - When the agent completes:
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py complete-agent <agent> \
+       --summary "<one line>" \
+       --kb-files "architecture.md,decisions.md" \
+       --cwd .
+     ```
+     The agent appends its own work record to the feature log via `state.py log-append`
+     (files created/modified, KB updated, decisions) — do not write that entry by hand.
    - Show a one-line status update:
      ```
      ✅ researcher completed — "Researched OAuth2 providers" → Starting architect...
@@ -267,10 +252,15 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
    **Parallel agents**: During BUILD phase, if both `frontend` and `backend` are present, run them in parallel (all modes).
 
 12. **Complete workflow**: After all agents finish:
-   - Finalize the feature log (append Summary section, update status to `completed`)
-   - Set workflow status to `completed`
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py complete --cwd .
+```
+
+This finalizes the feature log (appends the Summary section and flips the frontmatter to
+`status: completed`) and sets the workflow status in one call. Then:
    - Show a final summary of all agent outputs
-   - Update spec file status to `implemented`
+   - Update the spec file status to `implemented`
 
 ## Agent Sequence by Feature Type
 

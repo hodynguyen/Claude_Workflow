@@ -39,22 +39,22 @@ If empty, show the 20 most recent items of any type.
 ### Recent history (default)
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --limit 20 --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --limit 20 --cwd .
 ```
 
 ### By date range
 
+`tracker.py search` has no date flags. Widen the result set, then filter the
+`created_at` / `updated_at` timestamps yourself when presenting:
+
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
-  --after "<YYYY-MM-DD>" \
-  --before "<YYYY-MM-DD>" \
-  --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --limit 200 --cwd .
 ```
 
 ### By type and status
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
   --type <task|investigation|question|discussion|maintenance> \
   --status <status> \
   --cwd .
@@ -63,13 +63,13 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
 ### Item audit trail
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py history <item_id> --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py history <item_id> --cwd .
 ```
 
 ### By tags
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --tags "<tag1,tag2>" --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search --tags "<tag1,tag2>" --cwd .
 ```
 
 ## Output

@@ -27,16 +27,31 @@ If empty, resume normally using the execution mode persisted in state.json (defa
 Before resuming, check tracker for additional context about this workflow and related items:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
 ```
 
-1. **Check for active workflow**: Read `.hody/state.json`. If it doesn't exist or `status` is not `"in_progress"`, inform the user:
+1. **Check for active workflow**:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py show --json --cwd .
+```
+
+Exit 1 means there is no workflow. Also treat a `status` other than `"in_progress"` as
+nothing to resume. Either way, inform the user:
 
 ```
 No active workflow found. Start one with /hody-workflow:start-feature
 ```
 
-2. **Display workflow state**: Show the current workflow progress:
+Otherwise branch on `spec_confirmed` from this JSON in step 5.
+
+2. **Display workflow state**:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py show --cwd .
+```
+
+Present it in the richer form below (the script output is ASCII; the icons are yours):
 
 ```
 Resuming Workflow
@@ -72,7 +87,7 @@ Completed work:
 4. **Check for agent checkpoints**: Check if there are saved checkpoints from interrupted agents:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-list --workflow-id <workflow_id> --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-list --workflow-id <workflow_id> --cwd .
 ```
 
 If a checkpoint exists for the next agent, display it:
@@ -93,24 +108,54 @@ The spec was not finalized before the session was interrupted. Continue the disc
 - Read any partial spec or notes from KB
 - Re-read the feature description and type from state.json
 - Resume asking clarifying questions from where discovery left off
-- Once spec is confirmed, save it and proceed to auto-execution (same as start-feature Phase C)
+- Once the user confirms the spec, record it and proceed to auto-execution (same as
+  start-feature Phase C):
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py confirm-spec \
+  --spec-file "spec-<slug>.md" --cwd .
+```
 
 ### If `spec_confirmed` is `true` → Execute Remaining Agents
 
 The spec is confirmed — run remaining agents based on execution mode.
 
-a. **Apply mode override**: If the user passed a mode argument (`auto`, `manual`, `guided`), update `execution_mode` in state.json. Otherwise, use the persisted mode (default: `guided`).
+a. **Apply mode override**: If the user passed a mode argument, persist it. Otherwise use
+   the mode already in state.json (default: `guided`).
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py set-mode <auto|guided|manual> --cwd .
+```
+
+If `$ARGUMENTS` is `skip <agent>`, mark it skipped before computing the next agent:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py skip-agent <agent> --cwd .
+```
 
 b. **Read the spec and log**: Read `.hody/knowledge/<spec_file>` for the confirmed spec and `.hody/knowledge/<log_file>` for work already done by previous agents.
 
-c. **Identify remaining agents**: Find all agents that are not in `completed` or `skipped`.
+c. **Identify remaining agents**: Loop on
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py next-agent --json --cwd .
+```
+
+until `agent` is `null`. This subcommand always exits 0, so branch on the content.
 
 d. **Run agents based on execution mode**: For each remaining agent in sequence:
-   - Set it as `active` in state.json, add `agent_log` entry
-   - If checkpoint exists for this agent, pass checkpoint data to the agent so it can resume from where it left off (include `partial_output`, `resume_hint`, and completed/pending items)
-   - If no checkpoint, start the agent fresh
+   ```bash
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py start-agent <agent> --cwd .
+   ```
+   - A non-null `checkpoint` in that JSON means the agent was interrupted: pass its
+     `partial_output`, `resume_hint` and completed/pending items so it continues rather
+     than restarting. A null checkpoint means start fresh.
    - Activate the agent (it reads profile.yaml + KB + spec file)
-   - When agent completes, update state.json
+   - When the agent completes:
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py complete-agent <agent> \
+       --summary "<one line>" --kb-files "<comma,separated>" --cwd .
+     ```
    - Show one-line status:
      ```
      ✅ backend completed — "Implemented 5 API endpoints" → Starting unit-tester...
@@ -120,7 +165,13 @@ d. **Run agents based on execution mode**: For each remaining agent in sequence:
    - **`auto` or `guided`**: **Immediately** proceed to next agent — do NOT pause.
    - **`manual`**: Pause and show a review prompt. Wait for user to respond with `continue`, `skip`, or `abort`.
 
-e. **Complete workflow**: After all agents finish, set workflow status to `completed` and show the final summary.
+e. **Complete workflow**: After all agents finish:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py complete --cwd .
+```
+
+Then show the final summary.
 
 ### If all agents already completed
 
@@ -132,6 +183,19 @@ Would you like to:
   1. Complete this workflow
   2. Re-run a specific agent
   3. Start a new feature with /hody-workflow:start-feature
+```
+
+For "restart `<agent>`", clear its checkpoint first, then run it as in step 5d:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-clear \
+  --workflow-id <workflow_id> --agent <agent> --cwd .
+```
+
+To abandon the workflow instead:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py abort --cwd .
 ```
 
 ## Output

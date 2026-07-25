@@ -4,9 +4,11 @@ Project health dashboard for Hody Workflow.
 Aggregates metrics from knowledge base, workflow state, profile,
 and git history into a unified health report.
 """
+import argparse
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 
 
@@ -568,3 +570,123 @@ def format_health_report(report):
             lines.append("  -> {}".format(rec))
 
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# CLI (hody-cli-v1)
+# ---------------------------------------------------------------------------
+
+SECTIONS = ["all", "kb", "tech-debt", "workflows", "dependencies", "recommendations"]
+
+# CLI section name -> key in the report dict
+_SECTION_KEYS = {
+    "kb": "kb",
+    "tech-debt": "tech_debt",
+    "workflows": "workflows",
+    "dependencies": "dependencies",
+    "recommendations": "recommendations",
+}
+
+# CLI section name -> prefixes kept when filtering the formatted dashboard
+_SECTION_PREFIXES = {
+    "kb": ("Knowledge Base:",),
+    "tech-debt": ("Tech Debt:",),
+    "workflows": ("Workflows:", "Agent Usage:", " " * 17),
+    "dependencies": ("Dependencies:",),
+}
+
+
+def _output(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _fail(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print("Error: %s" % msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def _filter_section(text, section):
+    """Keep only the lines of the rendered dashboard belonging to `section`.
+
+    Filters the real output rather than duplicating the formatting logic.
+    """
+    lines = text.split("\n")
+    kept = lines[:3]  # title, rule, blank
+
+    if section == "recommendations":
+        in_recs = False
+        for line in lines[3:]:
+            if line.startswith("Recommendations:"):
+                in_recs = True
+                kept.append(line)
+            elif in_recs and line.startswith("  ->"):
+                kept.append(line)
+            elif in_recs:
+                break
+        return "\n".join(kept)
+
+    prefixes = _SECTION_PREFIXES[section]
+    for line in lines[3:]:
+        if any(line.startswith(p) for p in prefixes):
+            kept.append(line)
+    return "\n".join(kept)
+
+
+def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
+
+    parser = argparse.ArgumentParser(
+        description="Hody Workflow project health dashboard", parents=[parent]
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_report = sub.add_parser("report", parents=[parent], help="Print health dashboard")
+    p_report.add_argument("--section", default="all", choices=SECTIONS,
+                          help="Limit output to one section (default: all)")
+    p_report.add_argument("--json", action="store_true", dest="json_mode",
+                          help="Emit the raw report as JSON")
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
+
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
+    json_mode = getattr(args, "json_mode", False)
+
+    try:
+        if not os.path.isdir(os.path.join(cwd, ".hody")):
+            _fail("No .hody/ directory -- run /hody-workflow:init first", json_mode)
+
+        report = build_health_report(cwd)
+
+        if json_mode:
+            if args.section == "all":
+                _output(report)
+            else:
+                key = _SECTION_KEYS[args.section]
+                _output({key: report.get(key)})
+        else:
+            text = format_health_report(report)
+            if args.section != "all":
+                text = _filter_section(text, args.section)
+            print(text)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        _fail(str(exc), json_mode)
+
+
+if __name__ == "__main__":
+    main()

@@ -370,7 +370,13 @@ def write_default_config(cwd):
 
 def main():
     parent = argparse.ArgumentParser(add_help=False)
-    parent.add_argument("--cwd", default=".", help="Project root directory")
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
 
     parser = argparse.ArgumentParser(
         description="Hody Workflow project rules", parents=[parent]
@@ -383,7 +389,9 @@ def main():
     sub.add_parser("show", help="Pretty-print all rules", parents=[parent])
 
     args = parser.parse_args()
-    cwd = os.path.abspath(args.cwd)
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
 
     if args.command == "init":
         path = os.path.join(cwd, ".hody", RULES_FILE)

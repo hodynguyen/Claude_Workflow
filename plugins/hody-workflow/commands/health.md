@@ -22,13 +22,22 @@ If empty, show the full health dashboard.
 
 1. **Check initialization**: Verify `.hody/` directory exists. If not, suggest running `/hody-workflow:init` first.
 
-2. **Gather metrics**: Collect data from all sources:
-   - Read `.hody/knowledge/` files → KB completeness
-   - Parse `tech-debt.md` → tech debt count and priorities
-   - Read `.hody/state.json` → workflow statistics
-   - Read `.hody/profile.yaml` → dependency health (if deep analysis was run)
+2. **Run the dashboard**:
 
-3. **Display dashboard**: Show formatted health report:
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/health.py report --cwd .
+```
+
+Adjust the invocation based on `$ARGUMENTS`:
+- names a section (`kb`, `tech-debt`, `workflows`, `dependencies`, `recommendations`) → append `--section <name>`
+- asks for machine-readable output → append `--json`
+- says "summary" → do not use `--section`; print the output as-is (the default dashboard is already one line per metric)
+
+Exit 1 means `.hody/` is missing — print the "run `/hody-workflow:init` first" guidance.
+
+3. **Present the output**, then call out the most important signal in one sentence (worst metric, or the top recommendation).
+
+Example output of the command above:
 
    ```
    Project Health -- {project name}
@@ -47,10 +56,9 @@ If empty, show the full health dashboard.
      -> Run /hody-workflow:refresh --deep to check dependencies
    ```
 
-4. **Actionable suggestions**: Based on the data, recommend specific next steps.
-
 ## Notes
 
 - This command is read-only — it does not modify any files
-- It reads `.hody/profile.yaml`, `.hody/knowledge/`, and `.hody/state.json`
+- This command runs `health.py`; it does not compute metrics by reading files itself
+- The script reads `.hody/profile.yaml`, `.hody/knowledge/`, and `.hody/state.json`
 - Useful as a quick health check when starting a new session or before a release

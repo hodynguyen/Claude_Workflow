@@ -12,7 +12,13 @@ description: Use this agent to write integration tests, API tests, and E2E tests
 4. Read `.hody/knowledge/api-contracts.md` for endpoint specifications to test
 5. Read `.hody/knowledge/business-rules.md` for business flows to validate
 6. Examine existing test files to match project testing patterns
-7. **Contract check**: If `agents/contracts/unit-tester-to-integration-tester.yaml` exists, verify that unit tester has provided coverage summary and identified integration boundaries. Warn if missing (advisory mode)
+7. **Contract check**: Validate the incoming handoff.
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/contracts.py validate --from unit-tester --to integration-tester --cwd .
+```
+
+Advisory — the exit code is always 0. If `warnings` is non-empty, report them to the user and continue. Never pass `--strict`.
 
 ## Core Expertise
 - API integration testing (HTTP request/response validation)
@@ -46,6 +52,10 @@ Adapt testing approach based on profile:
 - Tests must be idempotent — clean up after themselves
 
 ## Output Format
+
+Report results using the **`test-report`** output style at
+`${CLAUDE_PLUGIN_ROOT}/output-styles/test-report.md` — read it before summarising a test run.
+
 - Place tests in the project's test directory, separate from unit tests
 - Use descriptive names: `test_[flow]_[scenario]` or `should [behavior] when [condition]`
 - Group tests by feature or business flow
@@ -112,15 +122,46 @@ If `.hody/state.json` exists, read it at bootstrap to understand the current wor
 - Check which phase and agent sequence you are part of
 - Review `agent_log` entries from previous agents for context on work already done
 - Read the feature log (`.hody/knowledge/<log_file>`) to see detailed work from previous agents
-- After completing your work:
-  1. Update `.hody/state.json`: add yourself to `completed`, clear `active`, add `agent_log` entry with `completed_at`, `output_summary`, and `kb_files_modified`
-  2. **Append to feature log** (`.hody/knowledge/<log_file>` from state.json): write a structured entry with:
-     - Summary of what you did
-     - Files created (new files you added to the codebase)
-     - Files modified (existing files you changed)
-     - KB files updated (which knowledge base files you wrote to)
-     - Key decisions made (if any)
-  3. Suggest the next agent based on the workflow state
+- After completing your work, record it through the state machine. Do **not** hand-edit
+  `.hody/state.json` and do **not** hand-write the log entry — writing them by hand is
+  what let the file drift off the current schema.
+
+  1. **Append your work record to the feature log.** `--decision` is repeatable; omit any
+     flag you have nothing for. The log file is read from `state.json`, so no path is needed:
+
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py log-append \
+       --agent integration-tester \
+       --phase <current_phase> \
+       --summary "<one line: what you did>" \
+       --files-created "<comma,separated>" \
+       --files-modified "<comma,separated>" \
+       --kb-updated "<comma,separated>" \
+       --decision "<key decision>" \
+       --cwd .
+     ```
+
+     `appended: false` in the response means the log file does not exist yet — report that
+     rather than assuming the record was saved.
+
+  2. **Mark yourself complete.** This clears `active`, adds you to `completed`, fills in your
+     `agent_log` entry and drops your checkpoint. It is idempotent, so it is safe even when
+     `/hody-workflow:start-feature` or `/hody-workflow:resume` also calls it for you:
+
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py complete-agent integration-tester \
+       --summary "<same one-line summary>" \
+       --kb-files "<comma,separated KB files>" \
+       --cwd .
+     ```
+
+  3. **Suggest the next agent** based on what the state machine reports:
+
+     ```bash
+     python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/state.py next-agent --cwd .
+     ```
+
+     Always exits 0; prints `none` when the workflow has no agents left.
 
 ## Checkpoints
 
@@ -130,7 +171,7 @@ When working on multi-item tasks (e.g., testing multiple API endpoints, running 
 
 **During work**: After completing each unit of work, save a checkpoint:
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-save \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py checkpoint-save \
   --workflow-id <workflow_id> \
   --agent integration-tester \
   --phase <current_phase> \

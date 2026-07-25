@@ -130,7 +130,19 @@ Manual sections to always preserve:
    - If it doesn't exist, append it at the end of the file
    - NEVER modify other sections in tech-debt.md (manual entries, prioritization, etc.)
 
-### Step 6: Summary
+### Step 6: Reindex
+
+After all KB files have been rewritten by steps 2–5, archive and reindex — in that order:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/kb_archive.py run --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/kb_index.py build --cwd .
+```
+
+Archival rewrites oversized files, so indexing must come second or `_index.json` will
+describe stale content.
+
+### Step 7: Summary
 
 Display a change summary showing exactly what was updated.
 
@@ -163,6 +175,8 @@ business-rules.md:
 
 decisions.md:
   — Skipped (ADRs are manual entries)
+
+_index.json: rebuilt (N files indexed)
 ```
 
 If nothing changed: "Knowledge base is up to date — no changes detected."

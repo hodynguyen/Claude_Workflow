@@ -83,7 +83,7 @@ Minimize external dependencies. Prefer Python stdlib. PyYAML is the only require
 ### Testing
 
 ```bash
-# Run all 539 tests across 30 test files
+# Run all 802 tests across 33 test files
 python3 -m unittest discover -s test -v
 
 # Tests cover:

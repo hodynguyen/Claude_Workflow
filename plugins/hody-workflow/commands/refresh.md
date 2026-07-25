@@ -24,13 +24,13 @@ If empty, run a standard refresh.
 1. **Re-detect tech stack**: Run the project-profile skill to re-scan the project and regenerate `.hody/profile.yaml`
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/detect_stack.py --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/detect_stack.py --cwd .
 ```
 
 If the user requests deep analysis (e.g., "refresh --deep", "deep analysis", "check dependencies"), add the `--deep` flag:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/detect_stack.py --cwd . --deep
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/detect_stack.py --cwd . --deep
 ```
 
 The `--deep` flag runs actual package manager commands (`npm ls`, `npm audit`, `pip list`, `go list`, `cargo metadata`) to get:
@@ -43,7 +43,7 @@ This is slower than the default regex-only detection but provides much richer da
 2. **Rebuild knowledge graph (optional)**: If the user passes `--graph` (e.g., `/refresh --graph` or the $ARGUMENTS contain "graph"), rebuild the Graphify knowledge graph after profile detection:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
 ```
 
 This re-runs the full Graphify setup. Graphify uses SHA256 file-content caching, so unchanged files are not re-parsed — only new or modified files are processed. After the script completes, tell the user to restart Claude Code if this is the first time building the graph (MCP server needs to be loaded).

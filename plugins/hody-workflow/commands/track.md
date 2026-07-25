@@ -46,7 +46,7 @@ Classify the user's request into one of 5 types:
 - `maintenance` — Dependency updates, cleanup
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py create \
   --type <type> \
   --title "<title>" \
   --tags "<comma-separated tags>" \
@@ -64,7 +64,7 @@ Valid transitions per type:
 - **maintenance**: planned → in_progress → completed/deferred/abandoned
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py update <item_id> \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py update <item_id> \
   --status <new_status> \
   --reason "<reason>" \
   --cwd .
@@ -73,13 +73,13 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py update <item_id
 ### Add a note
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py note <item_id> "<note text>" --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py note <item_id> "<note text>" --cwd .
 ```
 
 ### Search
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
   --type <type> \
   --status <status> \
   --tags "<tags>" \
@@ -89,7 +89,7 @@ python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py search \
 ### List active
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py list --active --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py list --active --cwd .
 ```
 
 ## Output

@@ -26,7 +26,17 @@ If empty, auto-detect format from environment (GITHUB_ACTIONS env → github for
    - Testing framework (jest, vitest, pytest, go-test, cargo-test, junit, rspec, phpunit, etc.)
    - CI system (github-actions, gitlab-ci, jenkins, or none)
 
-3. **Detect test results**: Look for existing test results or offer to run tests:
+2b. **Probe CI**: Ask the CI provider for the real status of the current branch:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/ci_monitor.py status --json --cwd .
+```
+
+If `available` is `false` or `status` is `unknown`, no CI data exists — continue with the
+local-test-run path in steps 3–6. This command always exits 0; branch on the JSON content.
+
+3. **Detect test results**: If step 2b returned real checks, report those first; only run the
+   local suite when CI data is unavailable.
    - If test result files exist (e.g., `test-results/`, `coverage/`, `junit.xml`), parse them
    - If no results exist, ask the user whether to run the test suite now
 
@@ -39,7 +49,7 @@ If empty, auto-detect format from environment (GITHUB_ACTIONS env → github for
 | Jenkins | JUnit XML (`test-results/junit.xml`) | — |
 | None / Unknown | Markdown summary (`test-results/summary.md`) | — |
 
-5. **Generate the report** using the `ci-report` output style template from `output-styles/ci-report.md`:
+5. **Generate the report** using the `ci-report` output style template from `${CLAUDE_PLUGIN_ROOT}/output-styles/ci-report.md`:
    - Parse test output (pass/fail/skip counts, failed test details, timing)
    - Format according to the chosen template
    - Include coverage data if available
@@ -48,6 +58,22 @@ If empty, auto-detect format from environment (GITHUB_ACTIONS env → github for
    - Create `test-results/` directory if needed
    - Write the report file(s) in the appropriate format
    - Display a summary to the user
+
+7. **Record failures**: Only when step 2b reported `status: failure`, parse the failed run's
+   logs and record them as tech debt:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/ci_monitor.py feedback --cwd .
+```
+
+Report `tech_debt_updated` and `suggestions` from its output. Run this at most once per
+`/hody-workflow:ci-report` invocation.
+
+For the `CI Status:` line in the output block below, use:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/ci_monitor.py summary --cwd .
+```
 
 ## Output
 
@@ -58,6 +84,7 @@ CI Report Generated
 ━━━━━━━━━━━━━━━━━━
 
 CI System: GitHub Actions
+CI Status: failure on branch main (2 failures)
 Format: GitHub Annotations + Markdown Summary
 
 Results:
@@ -82,3 +109,5 @@ Failed tests:
 - Add `test-results/` to `.gitignore` if you don't want to commit reports
 - For GitHub Actions, copy the annotation output to your workflow's step output
 - Supports all testing frameworks detected by `detect_stack.py`
+- `ci_monitor.py feedback` requires the `gh` CLI and writes to `.hody/knowledge/tech-debt.md`. It appends a new section on every run — do not loop it
+- `ci_monitor.py status` and `summary` are read-only probes and always exit 0, including when `gh` is not installed

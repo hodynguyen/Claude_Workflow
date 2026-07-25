@@ -4,10 +4,12 @@ CI feedback loop for Hody Workflow.
 Polls CI status, parses test failures, creates tech-debt entries
 in the knowledge base, and suggests fixes.
 """
+import argparse
 import json
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 
 
@@ -420,3 +422,152 @@ def run_ci_feedback(cwd):
         "tech_debt_updated": tech_debt_updated,
         "suggestions": fix_suggestions,
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI (hody-cli-v1)
+# ---------------------------------------------------------------------------
+
+# "gh not installed" is a normal state the command layer branches on, so every
+# subcommand here exits 0. Only `feedback` mutates (it appends to tech-debt.md).
+_UNAVAILABLE_STATUS = {
+    "available": False,
+    "status": "unknown",
+    "branch": None,
+    "checks": [],
+}
+
+_CHECK_MARKERS = {
+    "success": "[ok]",
+    "failure": "[x]",
+    "timed_out": "[x]",
+    "cancelled": "[x]",
+}
+
+
+def _output(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _fail(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print("Error: %s" % msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def _print_status_text(status):
+    print("CI: %s on branch %s" % (status.get("status", "unknown"),
+                                   status.get("branch", "?")))
+    for check in status.get("checks", []):
+        conclusion = (check.get("conclusion") or "").lower()
+        marker = _CHECK_MARKERS.get(conclusion, "[~]")
+        print("  %s %s  %s/%s  %s" % (
+            marker,
+            check.get("name", "?"),
+            check.get("status", "?"),
+            check.get("conclusion") or "-",
+            check.get("url", ""),
+        ))
+
+
+def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
+
+    parser = argparse.ArgumentParser(
+        description="Hody Workflow CI feedback loop (requires the gh CLI)",
+        parents=[parent],
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_status = sub.add_parser("status", parents=[parent],
+                              help="Probe CI status for the current branch")
+    p_status.add_argument("--raw", action="store_true",
+                          help="Keep the raw gh output in the JSON payload")
+    p_status.add_argument("--json", action="store_true", dest="json_mode")
+
+    p_summary = sub.add_parser("summary", parents=[parent],
+                               help="Condensed CI summary")
+    p_summary.add_argument("--json", action="store_true", dest="json_mode")
+
+    p_feedback = sub.add_parser(
+        "feedback", parents=[parent],
+        help="Parse failed run logs and append a section to tech-debt.md")
+    p_feedback.add_argument("--json", action="store_true", dest="json_mode")
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
+
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
+    json_mode = getattr(args, "json_mode", False)
+
+    try:
+        if args.command == "status":
+            status = get_ci_status(cwd)
+            if status is None:
+                if json_mode:
+                    _output(_UNAVAILABLE_STATUS)
+                else:
+                    print("CI status unavailable "
+                          "(gh CLI missing, not a git repo, or no runs).")
+                return
+            if json_mode:
+                payload = dict(status)
+                payload["available"] = True
+                if not args.raw:
+                    payload.pop("raw_output", None)
+                _output(payload)
+            else:
+                _print_status_text(status)
+
+        elif args.command == "summary":
+            summary = get_ci_summary(cwd)
+            if json_mode:
+                _output(summary)
+            else:
+                print("CI summary: status=%s, failures=%d"
+                      % (summary.get("status", "unknown"),
+                         summary.get("failure_count", 0)))
+                common = summary.get("common_failures") or []
+                if common:
+                    print("Common failures: %s" % ", ".join(common))
+
+        elif args.command == "feedback":
+            result = run_ci_feedback(cwd)
+            if json_mode:
+                _output(result)
+            else:
+                failures = result.get("failures") or []
+                if not failures:
+                    print("No CI failures to process.")
+                else:
+                    print("CI feedback: %d failure(s) parsed, %s"
+                          % (len(failures),
+                             "tech-debt.md updated"
+                             if result.get("tech_debt_updated")
+                             else "tech-debt.md unchanged"))
+                    suggestions = result.get("suggestions") or []
+                    if suggestions:
+                        print("Suggestions:")
+                        for s in suggestions:
+                            print("  - %s: %s" % (s.get("failure", "?"),
+                                                  s.get("suggestion", "")))
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        _fail(str(exc), json_mode)
+
+
+if __name__ == "__main__":
+    main()

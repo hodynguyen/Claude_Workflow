@@ -5,9 +5,12 @@ When a KB file exceeds a line threshold (default 500), moves older
 sections to `.hody/knowledge/archive/`. Sections are identified by
 ## headings with optional frontmatter dates for ordering.
 """
+import argparse
+import json
 import os
 import re
 import shutil
+import sys
 from datetime import datetime, timezone
 
 
@@ -185,3 +188,135 @@ def check_all_kb_files(kb_dir, threshold=DEFAULT_THRESHOLD):
             results.append(result)
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# CLI (hody-cli-v1)
+# ---------------------------------------------------------------------------
+
+
+def _output(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _fail(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print("Error: %s" % msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def _kb_md_files(kb_dir):
+    """Sorted list of (filename, path) for .md files directly in kb_dir."""
+    if not os.path.isdir(kb_dir):
+        return []
+    out = []
+    for fname in sorted(os.listdir(kb_dir)):
+        if not fname.endswith(".md"):
+            continue
+        fpath = os.path.join(kb_dir, fname)
+        if os.path.isfile(fpath):
+            out.append((fname, fpath))
+    return out
+
+
+def _cli_check(kb_dir, threshold):
+    """Read-only sweep.
+
+    Deliberately does NOT call check_all_kb_files(): despite its name that
+    function archives (mutates) every oversized file.
+    """
+    results = []
+    for fname, fpath in _kb_md_files(kb_dir):
+        needs, lines = check_file_needs_archival(fpath, threshold)
+        if needs:
+            results.append({"file": fname, "lines": lines, "needs_archival": True})
+    return results
+
+
+def _cli_run(kb_dir, threshold, keep_sections):
+    """Same loop as check_all_kb_files(), but able to pass keep_sections through."""
+    results = []
+    archive_dir = os.path.join(kb_dir, "archive")
+    for fname, fpath in _kb_md_files(kb_dir):
+        result = archive_file(fpath, archive_dir=archive_dir, threshold=threshold,
+                              keep_sections=keep_sections)
+        if result:
+            result["source_file"] = fname
+            results.append(result)
+    return results
+
+
+def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
+
+    parser = argparse.ArgumentParser(
+        description="Hody Workflow knowledge base archival", parents=[parent]
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    for name, helptext in (("check", "Report oversized KB files (read-only)"),
+                           ("run", "Archive older sections of oversized KB files")):
+        p = sub.add_parser(name, parents=[parent], help=helptext)
+        p.add_argument("--kb-dir", default=None,
+                       help="KB directory (default: <cwd>/.hody/knowledge)")
+        p.add_argument("--threshold", type=int, default=DEFAULT_THRESHOLD,
+                       help="Line count threshold (default: %d)" % DEFAULT_THRESHOLD)
+        p.add_argument("--json", action="store_true", dest="json_mode")
+        if name == "run":
+            p.add_argument("--keep-sections", type=int, default=3,
+                           help="Recent sections kept in the main file (default: 3)")
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
+
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
+    kb_dir = (os.path.abspath(args.kb_dir) if args.kb_dir
+              else os.path.join(cwd, ".hody", "knowledge"))
+    json_mode = getattr(args, "json_mode", False)
+
+    try:
+        if args.command == "check":
+            results = _cli_check(kb_dir, args.threshold)
+            if json_mode:
+                _output(results)
+            elif results:
+                print("%d file(s) over %d lines:" % (len(results), args.threshold))
+                for r in results:
+                    print("  %s  %d lines" % (r["file"], r["lines"]))
+            else:
+                print("All KB files under threshold (%d lines)." % args.threshold)
+
+        elif args.command == "run":
+            results = _cli_run(kb_dir, args.threshold, args.keep_sections)
+            if json_mode:
+                _output(results)
+            elif results:
+                print("Archived %d file(s):" % len(results))
+                for r in results:
+                    print("  %s -> archive/%s (%d sections moved, %d lines remaining)"
+                          % (r["source_file"],
+                             os.path.basename(r["archive_file"]),
+                             r["archived_sections"],
+                             r["remaining_lines"]))
+            else:
+                print("Nothing to archive.")
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        _fail(str(exc), json_mode)
+
+
+if __name__ == "__main__":
+    main()

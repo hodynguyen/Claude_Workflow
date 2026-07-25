@@ -283,7 +283,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │   ├── inject_project_context.py     # SessionStart + auto-refresh
 │       │   └── quality_gate.py               # Pre-commit quality gate (v2: configurable)
 │       │
-│       ├── commands/
+│       ├── commands/                          # 15 commands
 │       │   ├── init.md
 │       │   ├── start-feature.md
 │       │   ├── status.md
@@ -297,7 +297,8 @@ hody-workflow/                          # Root = GitHub repo
 │       │   ├── health.md                     # Project health dashboard
 │       │   ├── track.md                      # Interaction tracking
 │       │   ├── history.md                    # Interaction history
-│       │   └── rules.md                      # Project rules management
+│       │   ├── rules.md                      # Project rules management
+│       │   └── team.md                       # Team roles & permissions
 │       │
 │       ├── output-styles/
 │       │   ├── review-report.md
@@ -307,7 +308,7 @@ hody-workflow/                          # Root = GitHub repo
 │       │
 │       └── README.md
 │
-├── test/                               # 539 tests across 30 files
+├── test/                               # 802 tests across 33 files
 │   ├── test_detect_stack.py            # Integration test (backward-compat)
 │   ├── test_node_detector.py
 │   ├── test_go_detector.py

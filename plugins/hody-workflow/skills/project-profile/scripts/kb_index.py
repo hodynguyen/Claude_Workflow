@@ -6,9 +6,11 @@ Parses YAML frontmatter from KB markdown files and builds
 
 The index is a generated cache — it can always be rebuilt from the .md files.
 """
+import argparse
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 
 
@@ -264,3 +266,115 @@ def search_index(index, tag=None, agent=None, status=None):
 
 def _now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ---------------------------------------------------------------------------
+# CLI (hody-cli-v1)
+# ---------------------------------------------------------------------------
+
+
+def _output(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _fail(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print("Error: %s" % msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def _resolve_kb_dir(cwd, kb_dir):
+    if kb_dir:
+        return os.path.abspath(kb_dir)
+    return os.path.join(cwd, ".hody", "knowledge")
+
+
+def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
+
+    parser = argparse.ArgumentParser(
+        description="Hody Workflow knowledge base index (_index.json)",
+        parents=[parent],
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_build = sub.add_parser("build", parents=[parent],
+                             help="Build/rebuild .hody/knowledge/_index.json")
+    p_build.add_argument("--kb-dir", default=None,
+                         help="KB directory (default: <cwd>/.hody/knowledge)")
+    p_build.add_argument("--json", action="store_true", dest="json_mode")
+
+    p_search = sub.add_parser("search", parents=[parent],
+                              help="Search the index by tag/agent/status")
+    p_search.add_argument("--tag", default=None)
+    p_search.add_argument("--agent", default=None)
+    p_search.add_argument("--status", default=None)
+    p_search.add_argument("--kb-dir", default=None,
+                          help="KB directory (default: <cwd>/.hody/knowledge)")
+    p_search.add_argument("--json", action="store_true", dest="json_mode")
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
+
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
+    kb_dir = _resolve_kb_dir(cwd, args.kb_dir)
+    json_mode = getattr(args, "json_mode", False)
+
+    try:
+        if args.command == "build":
+            # cwd is passed explicitly: write_index() would otherwise infer the
+            # project root two levels above kb_dir, which breaks a custom --kb-dir.
+            index = write_index(kb_dir, cwd=cwd)
+            if json_mode:
+                _output(index)
+            else:
+                index_path = os.path.join(kb_dir, "_index.json")
+                print("Indexed %d file(s) -> %s"
+                      % (len(index.get("entries", [])), index_path))
+                gm = index.get("graph_metadata")
+                if gm:
+                    print("Graph: %s nodes, %s edges"
+                          % (gm.get("node_count", "?"), gm.get("edge_count", "?")))
+
+        elif args.command == "search":
+            index = load_index(kb_dir)
+            if index is None:
+                _fail(
+                    "No index at %s -- run: kb_index.py build --cwd ."
+                    % os.path.join(kb_dir, "_index.json"),
+                    json_mode,
+                )
+            results = search_index(index, tag=args.tag, agent=args.agent,
+                                   status=args.status)
+            if json_mode:
+                _output(results)
+            else:
+                for entry in results:
+                    print("%s  tags=[%s]  agent=%s  status=%s  (%d sections)" % (
+                        entry.get("file", "?"),
+                        ",".join(entry.get("tags", []) or []),
+                        entry.get("author_agent") or "-",
+                        entry.get("status") or "-",
+                        len(entry.get("sections", []) or []),
+                    ))
+                print("%d match(es)." % len(results))
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        _fail(str(exc), json_mode)
+
+
+if __name__ == "__main__":
+    main()

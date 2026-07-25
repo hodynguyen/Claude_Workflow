@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.abspath(SCRIPTS_DIR))
 from quality_rules import (
     get_default_rules,
     load_rules,
+    matches_ignore_path,
     check_secrets,
     check_security,
     check_debug_statements,
@@ -28,6 +29,8 @@ from quality_rules import (
     _parse_yaml_simple,
     _parse_value,
 )
+
+AWS_KEY_LINE = 'aws_key = "AKIA' + 'IOSFODNN7EXAMPLE"'
 
 
 class TestGetDefaultRules(unittest.TestCase):
@@ -309,6 +312,100 @@ class TestYamlParser(unittest.TestCase):
         self.assertEqual(_parse_value("42"), 42)
         self.assertEqual(_parse_value('"hello"'), "hello")
         self.assertEqual(_parse_value("plain"), "plain")
+
+
+class TestMatchesIgnorePath(unittest.TestCase):
+    """The shared matcher behind secrets.ignore_paths and security.ignore_paths."""
+
+    def test_directory_fragment(self):
+        self.assertTrue(matches_ignore_path("test/handler.py", ["test/"]))
+        self.assertTrue(matches_ignore_path("a/test/handler.py", ["test/"]))
+        self.assertFalse(matches_ignore_path("src/handler.py", ["test/"]))
+
+    def test_glob_matches_basename_only(self):
+        self.assertTrue(matches_ignore_path("src/a.test.js", ["*.test.*"]))
+        # The glob core must be in the basename, not anywhere in the path
+        self.assertFalse(matches_ignore_path("a.test.d/handler.js", ["*.test.*"]))
+
+    def test_plain_substring(self):
+        self.assertTrue(
+            matches_ignore_path("hooks/quality_gate.py", ["hooks/quality_gate.py"])
+        )
+        self.assertFalse(matches_ignore_path("hooks/other.py", ["hooks/quality_gate.py"]))
+
+    def test_case_insensitive(self):
+        self.assertTrue(matches_ignore_path("TEST/Handler.PY", ["test/"]))
+
+    def test_empty_and_malformed_inputs(self):
+        self.assertFalse(matches_ignore_path("src/a.py", []))
+        self.assertFalse(matches_ignore_path("src/a.py", ["", "  "]))
+        self.assertFalse(matches_ignore_path("", ["test/"]))
+        self.assertFalse(matches_ignore_path(None, ["test/"]))
+        # Not a list -> never matches, rather than crashing
+        self.assertFalse(matches_ignore_path("src/a.py", "test/"))
+
+
+class TestSecretsIgnorePaths(unittest.TestCase):
+    """secrets.ignore_paths lets a project exempt scanner fixtures (opt-in)."""
+
+    def _rules(self, ignore_paths):
+        rules = get_default_rules()
+        rules["rules"]["secrets"]["ignore_paths"] = ignore_paths
+        return rules
+
+    def test_default_is_empty_so_nothing_is_exempt(self):
+        """Secrets are never exempted implicitly -- unlike security."""
+        self.assertEqual(get_default_rules()["rules"]["secrets"]["ignore_paths"], [])
+
+    def test_test_files_are_not_exempt_by_default(self):
+        """A secret in test/ is still an error unless explicitly opted out."""
+        lines = [AWS_KEY_LINE]
+        issues = check_secrets("\n".join(lines), lines, get_default_rules(),
+                               "test/test_quality_gate.py")
+        self.assertTrue(any("AWS" in i["message"] for i in issues))
+
+    def test_ignored_path_is_skipped(self):
+        lines = [AWS_KEY_LINE]
+        issues = check_secrets("\n".join(lines), lines,
+                               self._rules(["test/test_quality_gate.py"]),
+                               "test/test_quality_gate.py")
+        self.assertEqual(issues, [])
+
+    def test_non_ignored_path_still_flagged(self):
+        lines = [AWS_KEY_LINE]
+        issues = check_secrets("\n".join(lines), lines,
+                               self._rules(["test/test_quality_gate.py"]),
+                               "src/config.py")
+        self.assertTrue(any("AWS" in i["message"] for i in issues))
+
+    def test_filepath_is_optional_for_backward_compat(self):
+        """Pre-existing callers pass 3 args; they must keep working."""
+        lines = [AWS_KEY_LINE]
+        issues = check_secrets("\n".join(lines), lines, self._rules(["src/"]))
+        self.assertTrue(any("AWS" in i["message"] for i in issues))
+
+    def test_run_checks_honours_secrets_ignore_paths(self):
+        """End-to-end: the exemption reaches run_checks, not just the checker."""
+        with tempfile.TemporaryDirectory() as tmp:
+            hody = os.path.join(tmp, ".hody")
+            os.makedirs(hody)
+            with open(os.path.join(hody, "quality-rules.yaml"), "w") as f:
+                f.write(
+                    "version: \"1\"\n"
+                    "rules:\n"
+                    "  secrets:\n"
+                    "    enabled: true\n"
+                    "    severity: error\n"
+                    "    ignore_paths:\n"
+                    "      - \"test/fixtures.py\"\n"
+                )
+            content = AWS_KEY_LINE + "\n"
+
+            exempt = run_checks(tmp, "test/fixtures.py", content)
+            self.assertEqual(exempt["errors"], [])
+
+            scanned = run_checks(tmp, "src/config.py", content)
+            self.assertTrue(any("AWS" in e["message"] for e in scanned["errors"]))
 
 
 if __name__ == "__main__":

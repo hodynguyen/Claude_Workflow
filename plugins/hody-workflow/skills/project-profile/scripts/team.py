@@ -4,9 +4,12 @@ Team roles and permissions for Hody Workflow.
 Reads `.hody/team.yaml` for role definitions, member assignments,
 and agent access control.
 """
+import argparse
+import json
 import os
 import re
 import subprocess
+import sys
 
 
 # Built-in role definitions
@@ -372,3 +375,159 @@ def get_team_summary(cwd):
         "current_user": username,
         "current_role": role,
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI (hody-cli-v1)
+#
+# check-agent / check-workflow exit 1 on denial, so they must never be chained
+# under && or run with `set -e`.
+# ---------------------------------------------------------------------------
+
+TEAM_FILE = "team.yaml"
+WORKFLOW_ACTIONS = ["skip_agent", "abort_workflow", "modify_contract"]
+
+
+def _output(data):
+    print(json.dumps(data, indent=2, default=str))
+
+
+def _fail(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print("Error: %s" % msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def _team_path(cwd):
+    return os.path.join(cwd, ".hody", TEAM_FILE)
+
+
+def _format_team_text(cwd, config, summary, config_exists):
+    lines = []
+    if not config_exists:
+        lines.append("(no team.yaml -- showing built-in defaults)")
+    lines.append("Team (.hody/%s)" % TEAM_FILE)
+    lines.append("Current user: %s (role: %s)"
+                 % (summary.get("current_user") or "unknown",
+                    summary.get("current_role") or "unknown"))
+    lines.append("Members: %d" % summary.get("member_count", 0))
+    lines.append("Roles:")
+
+    roles = config.get("roles", {})
+    width = max([len(r) for r in roles] or [8])
+    for name in roles:
+        perms = roles[name] or {}
+        agents = perms.get("agents", [])
+        agents_str = "all" if agents == "all" else str(
+            len(agents) if isinstance(agents, list) else 0)
+        lines.append("  %-*s agents=%-4s skip=%-4s contracts=%-4s review=%s" % (
+            width, name, agents_str,
+            "yes" if perms.get("can_skip_agents") else "no",
+            "yes" if perms.get("can_modify_contracts") else "no",
+            "yes" if perms.get("requires_review") else "no",
+        ))
+    return "\n".join(lines)
+
+
+def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    # default=SUPPRESS is load-bearing: --cwd lives on both the top-level
+    # parser and every subparser (parents=[parent]). With a concrete
+    # default the subparser re-applies it into its own namespace and
+    # silently clobbers a --cwd given *before* the subcommand, so the
+    # script would quietly operate on the process cwd instead.
+    parent.add_argument("--cwd", default=argparse.SUPPRESS,
+                        help="Project root directory (default: .)")
+
+    parser = argparse.ArgumentParser(
+        description="Hody Workflow team roles and permissions (advisory)",
+        parents=[parent],
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    p_init = sub.add_parser("init", parents=[parent],
+                            help="Create .hody/team.yaml from the default template")
+    p_init.add_argument("--force", action="store_true",
+                        help="Overwrite an existing team.yaml")
+
+    p_show = sub.add_parser("show", parents=[parent],
+                            help="Show roles, members and the current user's role")
+    p_show.add_argument("--json", action="store_true", dest="json_mode")
+
+    p_agent = sub.add_parser("check-agent", parents=[parent],
+                             help="Check whether a user may use an agent")
+    p_agent.add_argument("agent", help="Agent name")
+    p_agent.add_argument("--user", default=None,
+                         help="Username (default: $HODY_USER or git config user.name)")
+    p_agent.add_argument("--json", action="store_true", dest="json_mode")
+
+    p_wf = sub.add_parser("check-workflow", parents=[parent],
+                          help="Check whether a user may perform a workflow action")
+    p_wf.add_argument("action", choices=WORKFLOW_ACTIONS)
+    p_wf.add_argument("--user", default=None,
+                      help="Username (default: $HODY_USER or git config user.name)")
+    p_wf.add_argument("--json", action="store_true", dest="json_mode")
+
+    args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
+
+    # getattr, not args.cwd: the shared --cwd action defaults to
+    # SUPPRESS so a value given before the subcommand survives.
+    cwd = os.path.abspath(getattr(args, "cwd", "."))
+    json_mode = getattr(args, "json_mode", False)
+
+    try:
+        if args.command == "init":
+            path = _team_path(cwd)
+            if os.path.isfile(path) and not args.force:
+                _fail("%s already exists (use --force to overwrite)" % TEAM_FILE)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                f.write(generate_default_team_config())
+            print("Created .hody/%s" % TEAM_FILE)
+
+        elif args.command == "show":
+            config = load_team_config(cwd)
+            summary = get_team_summary(cwd)
+            config_exists = os.path.isfile(_team_path(cwd))
+            if json_mode:
+                _output({
+                    "config_exists": config_exists,
+                    "summary": summary,
+                    "roles": config.get("roles", {}),
+                    "members": config.get("members", []),
+                })
+            else:
+                print(_format_team_text(cwd, config, summary, config_exists))
+
+        elif args.command in ("check-agent", "check-workflow"):
+            config = load_team_config(cwd)
+            user = args.user or get_current_user(cwd)
+            role = get_user_role(config, user)
+
+            if args.command == "check-agent":
+                allowed, reason = can_use_agent(config, user, args.agent)
+                payload = {"allowed": allowed, "reason": reason,
+                           "user": user, "role": role, "agent": args.agent}
+            else:
+                allowed, reason = check_workflow_permissions(config, user, args.action)
+                payload = {"allowed": allowed, "reason": reason,
+                           "user": user, "role": role, "action": args.action}
+
+            if json_mode:
+                _output(payload)
+            else:
+                print("%s: %s" % ("ALLOWED" if allowed else "DENIED", reason))
+            if not allowed:
+                sys.exit(1)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        _fail(str(exc), json_mode)
+
+
+if __name__ == "__main__":
+    main()

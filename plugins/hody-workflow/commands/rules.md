@@ -75,7 +75,7 @@ If empty, default to "show".
 
 1. Run validation:
    ```bash
-   python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/rules.py validate --cwd .
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/rules.py validate --cwd .
    ```
 
 2. Display results:
@@ -93,7 +93,7 @@ If empty, default to "show".
 
 2. Create template:
    ```bash
-   python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/rules.py init --cwd .
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/rules.py init --cwd .
    ```
 
 3. Show the created file and guide the user:

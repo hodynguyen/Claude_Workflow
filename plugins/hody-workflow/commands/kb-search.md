@@ -32,9 +32,19 @@ If empty, ask the user what they want to search for.
    - `agent:<name>` — search by author agent (e.g., `agent:architect`)
    - `status:<status>` — filter by status (e.g., `status:active`, `status:superseded`)
 
-   If `.hody/knowledge/_index.json` exists, read it and filter entries by tag, agent, or status. Show matching files with their tags, author, and sections.
+   Run the indexed search, passing only the filters the user actually supplied:
 
-   If no index exists, skip to step 4 (keyword search).
+   ```bash
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/kb_index.py search \
+     --tag <t> --agent <a> --status <s> --json --cwd .
+   ```
+
+   If it exits 1 (no index), run
+   `python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/kb_index.py build --cwd .`
+   first, then retry the search.
+
+   Present the matching files with their tags, author, and sections. Then continue to
+   step 4 for full-text matches — the index covers metadata and headings only.
 
 4. **Search across all KB files**: Read all `.md` files in `.hody/knowledge/` and search for the query.
 
@@ -91,5 +101,5 @@ Available KB files: architecture.md, decisions.md, api-contracts.md, business-ru
 - Returns full sections (from ## heading to next ## heading) for context
 - Does not modify any knowledge base files
 - Works with any custom .md files added to .hody/knowledge/
-- Structured search (tag/agent/status) requires `_index.json` — rebuild with `/hody-workflow:init` or `/hody-workflow:update-kb` if missing
+- Structured search (tag/agent/status) requires `_index.json` — rebuild with `/hody-workflow:init` or `/hody-workflow:update-kb` if missing, or directly: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/kb_index.py build --cwd .`
 - KB files with YAML frontmatter (tags, author_agent, created, status) enable richer search

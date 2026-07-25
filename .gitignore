@@ -10,4 +10,16 @@ build/
 PROGRESS.md
 USAGE_GUIDE.md
 .venv-graphify-spike/
+
+# Graphify output. The bare pattern matches at any depth, so a graphify run with the
+# wrong cwd (e.g. inside skills/project-profile/scripts/) can never be committed.
 graphify-out/
+**/graphify-out/
+
+# Local-only interaction tracker DB (ADR-005) -- never shared via git
+.hody/tracker.db
+.hody/tracker.db-wal
+.hody/tracker.db-shm
+
+# Claude Code agent worktrees -- local scratch copies of this repo, never committed
+.claude/worktrees/

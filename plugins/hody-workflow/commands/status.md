@@ -111,7 +111,7 @@ Warnings:
 
 Run to get tracker context:
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/tracker.py context --cwd .
 ```
 
 Only show this section if tracker.db exists and has active items.
@@ -119,7 +119,7 @@ Only show this section if tracker.db exists and has active items.
 7. **Check Graphify graph**: If both `graphify-out/graph.json` and `graphify-out/graph.prev.json` exist, show a structural diff between the last two graph builds:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_diff.py --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/graphify_diff.py --cwd .
 ```
 
 This surfaces:

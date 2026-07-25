@@ -106,12 +106,15 @@ Required field maps:
 **Step 2 — If all required fields are provided, run non-interactively:**
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py jira \
-  --cwd . \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py --cwd . jira \
   --api-token "<token>" \
   --site "<https://your-org.atlassian.net>" \
   --email "<email>"
 ```
+
+`--cwd` must come **before** the integration name: unlike the other scripts,
+`mcp_setup.py` defines it only on the top-level parser, so `mcp_setup.py jira --cwd .`
+exits 2 with "unrecognized arguments".
 
 Output is JSON describing what was written. After success, tell the user:
 
@@ -146,7 +149,7 @@ For Linear / GitHub use the same pattern — list each missing field, the env va
 **Disable / remove** an integration:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py remove jira --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py --cwd . remove jira
 ```
 
 This drops the server entry from `.claude/settings.json` and sets `integrations.jira: false` in profile.yaml. Other servers in `mcpServers` are preserved.
@@ -154,7 +157,7 @@ This drops the server entry from `.claude/settings.json` and sets `integrations.
 **Status / list** of all integrations:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py status --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/mcp_setup.py --cwd . status
 ```
 
 Returns JSON of `configured_in_settings` and `profile_flag` per integration.
@@ -166,7 +169,7 @@ Graphify turns the codebase into a queryable knowledge graph using tree-sitter A
 Run the automated setup script:
 
 ```bash
-python3 ${PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/project-profile/scripts/graphify_setup.py --cwd .
 ```
 
 The script handles all steps automatically:

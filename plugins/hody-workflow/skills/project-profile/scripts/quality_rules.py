@@ -15,6 +15,9 @@ DEFAULT_RULES = {
             "enabled": True,
             "severity": "error",
             "custom_patterns": [],
+            # Empty by default on purpose: secrets are the highest-severity
+            # check, so nothing is exempted unless a project opts in.
+            "ignore_paths": [],
         },
         "security": {
             "enabled": True,
@@ -250,13 +253,53 @@ def load_rules(cwd):
         return copy.deepcopy(DEFAULT_RULES)
 
 
-def check_secrets(content, lines, rules):
+def matches_ignore_path(filepath, ignore_paths):
+    """Check whether filepath matches any entry in an ignore_paths list.
+
+    Supported entry forms:
+      - "test/"      directory fragment, matched anywhere in the path
+      - "*.test.*"   simple glob, matched against the basename
+      - "src/x.py"   plain substring, matched anywhere in the path
+    """
+    if not filepath or not isinstance(ignore_paths, list):
+        return False
+
+    lowered = filepath.lower()
+    basename = os.path.basename(lowered)
+
+    for pattern in ignore_paths:
+        pattern = str(pattern).lower()
+        if not pattern:
+            continue
+        if pattern.endswith("/"):
+            if pattern.rstrip("/") in lowered:
+                return True
+        elif "*" in pattern:
+            # Simple glob: *.test.* -> check if ".test." is in filename
+            if pattern.replace("*", "") in basename:
+                return True
+        else:
+            if pattern in lowered:
+                return True
+
+    return False
+
+
+def check_secrets(content, lines, rules, filepath=None):
     """Check for hardcoded secrets using both built-in and custom patterns.
+
+    `filepath` is optional for backward compatibility. When given, files
+    matching `secrets.ignore_paths` are skipped. That list defaults to empty
+    — unlike `security.ignore_paths`, secrets are never exempted implicitly,
+    so a project must opt a path out explicitly in .hody/quality-rules.yaml.
 
     Returns list of {line, severity, message}.
     """
     secrets_rules = rules.get("rules", {}).get("secrets", {})
     if not secrets_rules.get("enabled", True):
+        return []
+
+    if filepath and matches_ignore_path(filepath, secrets_rules.get("ignore_paths", [])):
         return []
 
     severity = secrets_rules.get("severity", "error")
@@ -301,20 +344,8 @@ def check_security(content, lines, filepath, rules):
 
     # Check ignore paths
     ignore_paths = security_rules.get("ignore_paths", ["test/", "*.test.*", "*.spec.*"])
-    if isinstance(ignore_paths, list):
-        for pattern in ignore_paths:
-            pattern = str(pattern)
-            if pattern.endswith("/"):
-                if pattern.rstrip("/") in filepath.lower():
-                    return []
-            elif "*" in pattern:
-                # Simple glob: *.test.* -> check if ".test." is in filename
-                core = pattern.replace("*", "")
-                if core in os.path.basename(filepath).lower():
-                    return []
-            else:
-                if pattern in filepath.lower():
-                    return []
+    if matches_ignore_path(filepath, ignore_paths):
+        return []
 
     severity = security_rules.get("severity", "error")
     issues = []
@@ -435,7 +466,7 @@ def run_checks(cwd, filepath, content):
     lines = content.splitlines() if content else []
 
     # Secrets
-    for issue in check_secrets(content, lines, rules):
+    for issue in check_secrets(content, lines, rules, filepath):
         _route_issue(issue, filepath, errors, warnings)
 
     # Security
@@ -480,6 +511,10 @@ rules:
     custom_patterns:
       - pattern: "STRIPE_SECRET"
         message: "Stripe secret key detected"
+    # Empty by default -- secrets are never exempted implicitly. Add a path
+    # only when a file must legitimately contain secret-shaped strings, such
+    # as the fixtures of a test that exercises the scanner itself.
+    ignore_paths: []
 
   security:
     enabled: true

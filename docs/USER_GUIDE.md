@@ -2,7 +2,7 @@
 
 > How to install, configure, and use the Hody Workflow plugin for Claude Code.
 
-**Current status**: v0.12.0 — 9 agents, 14 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, auto-track hook, MCP auto-setup for Jira/Linear/GitHub, 615 tests.
+**Current status**: v0.13.0 — 9 agents, 15 commands, 4 output styles, 6 agent contracts, Graphify knowledge graph, project rules, interaction tracker, 3 execution modes, auto-track hook, MCP auto-setup for Jira/Linear/GitHub, CLI surface for all workflow scripts, 802 tests.
 
 ---
 
